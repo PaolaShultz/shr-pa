@@ -9,7 +9,10 @@ jobs:
         os: [ubuntu-24.04, ubuntu-24.04-arm]
     runs-on: ${{ matrix.os }}
     steps:
+      # Checkout v7 runs on Node 24 supplied by the GitHub-hosted runner.
+      # This Rust project has no application Node runtime dependency.
       - uses: actions/checkout@v7.0.1
+      - run: sudo apt-get update && sudo apt-get install -y libasound2-dev pkg-config
       - name: Install pinned Rust
         run: rustup toolchain install 1.97.1 --profile minimal --component rustfmt --component clippy
       - run: cargo fmt --all -- --check
@@ -17,3 +20,4 @@ jobs:
       - run: cargo test --locked --all-targets
       - run: cargo build --locked --release
       - run: python3 scripts/check-terminal.py target/release/shr-pa
+      - run: python3 scripts/check-live-controls.py target/release/shr-pa

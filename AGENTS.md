@@ -3,7 +3,8 @@
 ## Scope
 
 Highly experimental Rust PA management project for Raspberry Pi 5 and Linux Lite.
-UMC1820 is the intended interface. Preserve implemented, planned and
+UMC1820 is a future target, not a prerequisite for DSP development.
+Keep logical 2×6 processing, available physical channels and possible measurements distinct. Preserve implemented, planned and
 hardware-verified status. Current scope is the complete DriveRack PA2 function
 plan in fixed 2-input/6-output configurations, with one separate setup mic.
 LR24 is first/default. General matrices, advanced routing, eight-point positional

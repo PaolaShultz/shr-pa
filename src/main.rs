@@ -27,11 +27,14 @@ fn main() {
 
 fn run() -> io::Result<()> {
     let args: Vec<_> = std::env::args().skip(1).collect();
+    if shr_pa::commands::execute(&args).map_err(|e| io::Error::other(e.to_string()))? {
+        return Ok(());
+    }
     match args.as_slice() {
         [] => interactive(),
         [arg] if arg == "--help" || arg == "-h" => {
             println!(
-                "SHR PA — highly experimental PA management scaffold\n\nUsage: shr-pa [--help | --version | --snapshot [home|features|hardware]]\n\nNo audio or MIDI devices are opened.\nUI: arrows / Tab / footer touch; q / Esc / Ctrl+C to exit.\nTouch requires terminal mouse events. Minimum terminal: 40x13."
+                "SHR PA — experimental 2 x 6 PA processor\n\nUsage:\n  shr-pa [--snapshot [home|features|hardware]]\n  shr-pa init PRESET.json\n  shr-pa migrate OLD.json NEW.json\n  shr-pa check PRESET.json\n  shr-pa render PRESET.json SOURCE OUT.wav SECONDS --unmute\n  shr-pa devices\n  shr-pa live PRESET.json CAPTURE PLAYBACK CAP_CH PLAY_CH IN_MAP OUT_MAP SECONDS [--unmute|--ui] [--signal=SOURCE]\n\nSOURCE: silence, impulse, noise, sweep, sine:HZ, or stereo WAV (offline).\nMaps use zero-based indices; OUT_MAP has six entries, '-' means unmapped.\nExample stereo map: 0,1,-,-,-,- . Devices: hw:CARD=id,DEV=0.\nLive defaults muted; --ui provides live parameter editing and ramped mutes.\nDefault terminal is an offline preset editor/preview. No hardware opens.\nUI: arrows / Tab / footer touch; q / Esc / Ctrl+C exit.\nMinimum terminal: 40x13. See docs/RUNNING.md."
             );
             Ok(())
         }
@@ -55,7 +58,7 @@ fn run() -> io::Result<()> {
 
 fn snapshot(page: Page) -> io::Result<()> {
     let mut out = io::stdout().lock();
-    for line in ui::screen(page, ui::WIDTH, ui::HEIGHT) {
+    for line in ui::Editor::new()?.screen(page, ui::WIDTH, ui::HEIGHT) {
         writeln!(out, "{line}")?;
     }
     Ok(())
@@ -102,6 +105,7 @@ fn interactive() -> io::Result<()> {
     // the first frame must not arrive before SIGWINCH handling is installed.
     let _guard = TerminalGuard::enter()?;
     event::poll(Duration::ZERO)?;
+    let mut editor = ui::Editor::new()?;
     let mut page = Page::Home;
     let mut dirty = true;
     while !stop.load(Ordering::Relaxed) {
@@ -109,7 +113,7 @@ fn interactive() -> io::Result<()> {
             let (width, height) = terminal::size()?;
             let mut out = io::stdout().lock();
             queue!(out, Clear(ClearType::All))?;
-            for (row, line) in ui::screen(page, width, height).iter().enumerate() {
+            for (row, line) in editor.screen(page, width, height).iter().enumerate() {
                 queue!(
                     out,
                     MoveTo(0, row as u16),
@@ -131,6 +135,11 @@ fn interactive() -> io::Result<()> {
                 }
                 KeyCode::Right | KeyCode::Down | KeyCode::Tab => Some(Action::Next),
                 KeyCode::Left | KeyCode::Up | KeyCode::BackTab => Some(Action::Previous),
+                KeyCode::Char(c) => {
+                    editor.key(c);
+                    dirty = true;
+                    None
+                }
                 _ => None,
             },
             Event::Mouse(mouse) if mouse.kind == MouseEventKind::Down(MouseButton::Left) => {

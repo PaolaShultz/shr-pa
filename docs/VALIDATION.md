@@ -8,25 +8,33 @@ cargo clippy --locked --all-targets -- -D warnings
 cargo test --locked --all-targets
 cargo build --release --locked
 python3 scripts/check-terminal.py target/release/shr-pa
+python3 scripts/check-live-controls.py target/release/shr-pa
 ```
 
-The Rust suite checks page bounds/status, touch/navigation consistency, resize
-behavior, headless CLI output and rejection of unsupported commands. The Linux
+The Rust suite covers complex crossover response/sum/phase, all layouts,
+mono bass, delays, gain/polarity, PEQ response, limiter ceiling/release/linking,
+mute ramps, meters, numerical faults, block boundaries and render allocations.
+It also checks mapping, PCM conversion, partial transfers/error classification,
+validated atomic presets, deterministic WAV output, editor controls, page bounds,
+navigation, resize behavior and headless CLI errors. The Linux
 pseudo-terminal check covers keyboard navigation, touch exit, Ctrl+C, termination
 signals, small-terminal recovery and restoration of terminal attributes. It uses
-no audio device. These are fast production regressions and belong in the default
-validation path and CI.
+no audio device. The Rust suite also explicitly uses ALSA's software-only `null`
+PCM for the pre-start cancellation regression; it never selects hardware. These
+are fast production regressions in the default validation path and CI.
 
 Run the full normal suite for shared engine, render, model, routing, persistence,
 concurrency or safety changes, and before publication. During implementation,
 start with the focused checks for the changed behavior.
 
-## Later normal tests
+## Remaining normal coverage to add with later features
 
-Add deterministic DSP response tests, fixed-configuration/schema tests, finite-value and
-protection invariants, bounded command handoff and recovery regressions when
-those components exist. Add allocation checks around real render work. Compare
-whole 2×6 chain output against references, including multiway crossover sums.
+Extend the existing DSP/schema/protection/allocation regressions as each new
+module lands. Prepared handoff/backpressure, concurrent publication, response/dynamics,
+transitions, migration and zero-allocation regressions now protect live controls.
+The live-controls PTY script uses only software `null` PCM, exercises module edits,
+save/recall, rejected rate changes and cleanup, and belongs to normal CI.
+Add analysis isolation and automatic recovery regressions with those future features.
 
 Use [function-map IDs](DRIVERACK_MAP.md) to link each future test/evidence record
 to the planned capability. Include all fixed configuration families, inactive
@@ -34,7 +42,26 @@ outputs, single-mic isolation, full processing load, parameter/bypass transition
 setup cancellation, presets/global-state ownership and local/remote command races.
 Advanced matrix and eight-point measurement tests belong to future work.
 
-## Opt-in bench and research classes — not implemented yet
+## Opt-in bench and research classes
+
+The initial direct ALSA command and opt-in control smoke test now exist:
+
+```sh
+# Explicit hardware use; inspect/select CARD_ID first.
+./target/release/shr-pa live preset.json \
+  hw:CARD=CARD_ID,DEV=0 hw:CARD=CARD_ID,DEV=0 \
+  2 2 0,1 0,1,-,-,-,- 10 --unmute --signal=noise
+python3 scripts/check-live.py target/release/shr-pa preset.json hw:CARD=CARD_ID,DEV=0
+# Fully enabled offline workload with simultaneous live edits (opt-in):
+cargo run --release --locked --example processing-load -- 30
+# Explicit offline evidence renderer:
+./target/release/shr-pa render preset.json sweep six-outputs.wav 5 --unmute
+```
+
+These are not run by `cargo test` or CI. The smoke script opens the specified
+card, tests startup-muted capture, SIGTERM/reopen and terminal mute/exit behavior.
+See [first-slice evidence](verification/0003-engine.md). No analog loopback is
+connected, so analog latency cannot be inferred from these timings.
 
 Hardware streaming, exhaustive parameter sweeps, long thermal/latency soaks,
 feedback auditions and measurement renderers must be explicit opt-in commands.

@@ -1,34 +1,60 @@
 # Current status
 
-## Implemented
+## Working offline
 
-- Standalone Rust executable and library for the small terminal layout.
-- Three offline pages: project, planned features, target hardware.
-- Keyboard and terminal mouse navigation; small-terminal fallback.
-- Plain text snapshots, help/version and explicit invalid-command errors.
-- Terminal cleanup on ordinary exit and handled SIGINT/SIGTERM/SIGHUP.
-- Fast layout/CLI regressions and a pseudo-terminal lifecycle check.
-- Linux x86-64/ARM64 CI configuration, MIT license and project documentation.
+- Hardware-independent, synchronous 2-input/six-output Rust engine with bounded,
+  allocation-free rendering and explicit rate/block configuration.
+- Full-range/external, two-way, phase-compensated three-way, six full-range and
+  four-mains-plus-subs layouts; stereo/mono-left and explicit averaged mono bass.
+- Live gain/polarity and delay transitions, per-output 5 ms mute ramps,
+  31-band linked/separate GEQ, eight bell/shelf input PEQs per channel and eight
+  speaker PEQs per output pair, and stereo-linked soft/hard-knee compression.
+- Stereo-linked sample peak limiters, peak/clip/reduction meters and latched
+  numerical-fault silence. See [precise behavior and limits](DSP.md).
+- Seeded white noise, sine, impulse and log sweep; stereo WAV input and six-channel
+  float WAV output, independent of physical channel counts.
+- Validated v2 JSON presets with atomic save/load and explicit v1 migration. Terminal edits
+  and computed preview; compact keyboard/mouse navigation and terminal cleanup.
 
-## Not implemented
+## Implemented live transport
 
-ALSA audio, DSP, routing, meters, configuration/presets, direct touchscreen
-integration, MIDI, measurement, automatic EQ, feedback suppression or service
-installation. The interface has no live controls and opens no audio devices.
+Direct ALSA negotiation, independent native-format conversion, explicit input
+and logical-to-physical output selection, silence for unused physical channels,
+partial transfers, startup priming, bounded waits and shutdown. Xruns/suspend,
+disconnect and numerical faults stop both streams; explicit restart is required.
+Live terminal has all implemented module controls, six ramped mutes, peaks,
+compression/limiting reduction, physical mappings and modified/pending/fault status.
+One bounded prepared-transaction slot applies edits at block boundaries without
+render allocation, locks or audio queues. Layout/recall use mute/reconfigure/resume.
+Software-null streaming and PTY checks exercise these controls; new physical
+streaming trials were blocked by JACK owning the interface (left running).
+See [live-control verification](verification/0004-live-controls.md).
 
-## Hardware and performance
+## Earlier physical trials on this Pi
 
-The foundation is built/tested on the target Pi 5. UMC1820 hardware validation,
-physical touchscreen validation, latency measurements and live PA tests remain
-pending. There are no fabricated meters, measurements or benchmark numbers.
+AudioBox USB 96 stereo capture/playback, S32_LE, 48 kHz, 128-frame periods and
+512-frame buffers. All six logical outputs ran, including a fully enabled 64-PEQ
+workload. A 30-second trial had zero xruns, mean render 84.3 µs and maximum
+281.8 µs (2,666.7 µs period). Shorter/smaller-buffer trials and their failures are
+recorded in [verification](verification/0003-engine.md). These are development
+observations, not venue/long-soak acceptance or minimum-buffer guarantees.
 
-## Current plan
+The user confirmed no analog loopback, with outputs connected to an unpowered
+amp. Analog round-trip latency, physical signal response, converter voltage,
+noise floor, acoustic behavior and speaker protection remain unmeasured.
 
-The [complete PA2 function map](DRIVERACK_MAP.md) and [roadmap](ROADMAP.md) target
-fixed 2-input/6-output configurations with one separate setup microphone. LR24
-is first/default. The map includes all documented function categories, control
-ranges, implementation stages and acceptance checks; none is marked live-complete.
+## Still pending
 
-Physical screen/input integration, signal levels and speaker protection limits
-still need hardware detail. Matrix/advanced routing, eight-point positional RTA
-and the later nine-channel arrangement are [future work](FUTURE.md).
+GEQ tonal curves/restore history, PA2 shelf-slope unit compatibility,
+subharmonic synthesis, feedback suppression,
+RTA/separate mic integration, AutoEQ/setup wizards, alternate crossover slopes
+and independent edges, limiter bypass/knee modes,
+preset slots/profiles/recovery, lockout/remote/update management, automatic device
+recovery, and physical touchscreen integration. The [full map](DRIVERACK_MAP.md)
+retains these features and acceptance work; partial rows are not marked complete.
+
+UMC1820 is a **future target**, not a development gate. Its eventual channel and
+physical acceptance work remains pending. General matrices, advanced routing,
+eight-point positional RTA and the later nine-channel layout remain [future](FUTURE.md).
+
+[Run commands and controls](RUNNING.md) · [Validation](VALIDATION.md)

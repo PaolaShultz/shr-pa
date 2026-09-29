@@ -34,18 +34,18 @@ def check(name, mode, small=False):
                 output.extend(data)
 
     try:
-        until(b"resize to" if small else b"01 / PROJECT")
+        until(b"resize to" if small else b"01 / ENGINE - OFFLINE EDITOR")
         if small:
             fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 13, 40, 0, 0))
             process.send_signal(signal.SIGWINCH)
-            until(b"01 / PROJECT")
+            until(b"01 / ENGINE - OFFLINE EDITOR")
         if mode == "keyboard":
             os.write(master, b"\t")
-            until(b"02 / PLANNED FEATURES")
+            until(b"v:GEQ")
             os.write(master, b"q")
         elif mode == "touch":
             os.write(master, b"\x1b[<0;20;13M")
-            until(b"02 / PLANNED FEATURES")
+            until(b"v:GEQ")
             os.write(master, b"\x1b[<0;34;13M")
         elif mode == "ctrl-c":
             os.write(master, b"\x03")

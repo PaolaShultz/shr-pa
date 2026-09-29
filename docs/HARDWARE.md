@@ -1,4 +1,8 @@
-# Hardware qualification
+# Hardware capabilities and qualification
+
+The UMC1820 is a future target, **not a prerequisite**. Develop and run the logical
+2×6 engine on any supported channel capability; select physical output mappings
+explicitly and retain unmapped outputs for offline work. See [running](RUNNING.md).
 
 ## Compatibility conclusion
 
@@ -44,7 +48,9 @@ are future work; neither changes the initial 2×6 qualification target.
 | Connected audio | PreSonus AudioBox USB 96 |
 | UMC1820 | Not present in USB/ALSA enumeration |
 
-Inspection only. No audio endpoint was opened or reconfigured for this project.
+The original scaffold inspection was read-only. The subsequent implementation
+trial opened direct stereo ALSA with explicit user authorization and the amp off;
+see [measurements and limits](verification/0003-engine.md).
 The current OS is observed as Debian 13; the project target is 64-bit Linux Lite.
 
 The Pi 5 has two USB 3.0 ports supporting simultaneous 5 Gbps operation, per
@@ -74,4 +80,6 @@ will decide the useful port/controller arrangement and latency.
 8. Exercise USB MIDI separately if it is later used. Verify touchscreen input
    independently; USB audio compatibility does not validate a display/controller.
 
-The harness and live tests are planned work. See [validation](VALIDATION.md).
+The initial direct ALSA harness is working and exercised on the AudioBox.
+UMC1820-specific qualification remains future acceptance work.
+See [validation](VALIDATION.md).

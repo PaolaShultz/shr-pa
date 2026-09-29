@@ -9,7 +9,11 @@ repository = "https://github.com/PaolaShultz/shr-pa"
 description = "Highly experimental Raspberry Pi PA management system"
 
 [dependencies]
+alsa = "0.11"
 crossterm = "=0.26.1"
+hound = "3.5.1"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
 signal-hook = "=0.3.18"
 
 [profile.release]

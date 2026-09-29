@@ -39,7 +39,7 @@ parts += [text(718, 343, "ROUTE  /  ALIGN  /  MEASURE", 15, MUTED)]
 (OUT / "banner.svg").write_text(svg(1200, 380, "SHR PA", "Highly experimental Rust PA management for Raspberry Pi 5, with abstract interconnected signal paths.", "".join(parts)))
 
 parts = [text(40, 48, "DRIVERACK FUNCTIONS / 2 INPUTS × 6 OUTPUTS", 23, TEAL),
-         text(40, 80, "Planned processing · LR24 first · all audio implementation pending", 17, MUTED)]
+         text(40, 80, "Working: LR24 / GEQ / PEQ / compressor / delays / limiter; feedback and synth planned", 17, MUTED)]
 # The processing order and six labelled outputs are intentional; this is a plan.
 for x, heading, detail in [(40, "INPUT L / R", "Program or test signal"),
                            (315, "INPUT PROCESSING", "GEQ → room EQ → feedback"),
@@ -67,11 +67,11 @@ parts += [text(40, 525, "SETUP MIC → RTA / LEVEL ASSIST / AUTOEQ", 19, AMBER),
 binary = Path(sys.argv[1] if len(sys.argv) > 1 else ROOT / "target/release/shr-pa").resolve()
 lines = subprocess.check_output([binary, "--snapshot"], text=True).splitlines()
 assert len(lines) == 13 and all(len(line) <= 40 for line in lines)
-parts = [text(36, 39, "SCAFFOLD PREVIEW / 40 × 13", 15, MUTED),
+parts = [text(36, 39, "OFFLINE EDITOR / 40 × 13", 15, MUTED),
          f'<rect x="24" y="62" width="630" height="374" rx="10" fill="#0b1118" stroke="#334956"/>']
 for row, line in enumerate(lines):
     parts.append(text(39, 91 + row * 27, line, 23, TEAL if row == 0 else INK,
                       'font-family="DejaVu Sans Mono, monospace" xml:space="preserve"'))
-parts.append(text(36, 470, "Actual --snapshot text. Audio processing is not implemented.", 15, MUTED))
-(OUT / "terminal.svg").write_text(svg(680, 495, "SHR PA offline terminal shell", "Actual project page text from the executable, typeset as SVG. No live audio or meters.", "".join(parts)))
+parts.append(text(36, 470, "Actual --snapshot text. Preview uses the working DSP engine.", 15, MUTED))
+(OUT / "terminal.svg").write_text(svg(680, 495, "SHR PA offline engine editor", "Actual project page text from the executable, typeset as SVG. No live audio or meters.", "".join(parts)))
 print("Wrote docs/assets/{banner,signal-flow,terminal}.svg")

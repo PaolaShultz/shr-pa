@@ -1,5 +1,9 @@
 # SHR PA documentation
 
+- [Run commands and controls](RUNNING.md): offline, presets and direct ALSA.
+- [DSP contract](DSP.md): exact crossover, limiter, fault and render behavior.
+- [First engine verification](verification/0003-engine.md): tests and stereo bench evidence.
+- [Live controls verification](verification/0004-live-controls.md): new DSP, transactions and software-streaming evidence.
 - [Current status](STATUS.md): what exists and what remains pending.
 - [DriveRack function map](DRIVERACK_MAP.md): complete PA2 reference inventory for 2×6.
 - [Future work](FUTURE.md): matrix routing and eight-point positional measurement.

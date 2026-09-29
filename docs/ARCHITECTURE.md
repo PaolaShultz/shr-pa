@@ -1,6 +1,9 @@
 # Architecture — fixed 2×6 processor
 
-**Proposed architecture.** The executable remains an offline terminal scaffold.
+**Target architecture with an implemented first slice.**
+The actual processing/transport contracts are in [DSP](DSP.md) and [running](RUNNING.md).
+The diagram below includes still-planned feedback, bass synthesis and measurement.
+GEQ, bell/shelf PEQ and compression are implemented; see [DSP](DSP.md).
 The [function map](DRIVERACK_MAP.md) defines the PA2 baseline and the
 [roadmap](ROADMAP.md) its implementation sequence.
 
@@ -29,7 +32,7 @@ p. 60; [source](https://www.fullcompass.com/common/files/43013-DriveRackPA2UserM
 Noise replaces program at the defined source-selection point for measurement;
 its start/stop state is explicit. Verify excitation paths for each wizard.
 Stereo band settings are paired; delay/filter state and output mutes are per
-physical channel. Inactive and unmapped hardware outputs must be written as zero.
+logical channel. Inactive and unmapped hardware outputs must be written as zero.
 
 ## Boundaries
 
@@ -41,16 +44,17 @@ physical channel. Inactive and unmapped hardware outputs must be written as zero
 | Analysis | One-mic RTA/measurement, EQ fitting and feedback detection | Workers using bounded taps |
 | Interface | Local terminal/touch; remote client in P8 | Independent of audio deadlines |
 
-Split the DSP into a library when implementation starts. The control boundary
+The DSP is implemented in the library, separate from transport and terminal work. The control boundary
 should support later engine/client separation for remote operation. Do not add
-a network server, async runtime or general graph compiler to the scaffold.
+a network server, async runtime or general graph compiler to this first slice.
 
 ## Transport and latency
 
 Negotiate capture and playback independently: their native formats and channel
 counts can differ. Convert into preallocated storage, run the complete processing
 chain, convert and submit playback. Process the required roles even when the USB
-endpoint exposes extra channels. Confirm actual mappings on the UMC1820.
+endpoint exposes extra channels. Logical output processing never depends on physical channel count.
+Confirm socket mappings for whichever card is attached; UMC1820 is future work.
 
 No asynchronous queue or extra ping-pong pipeline sits between DSP stages. USB
 and ALSA transport buffers still exist and must be measured. Parameter handoff
@@ -96,6 +100,12 @@ real-time scheduling, locked memory, affinity, IRQ placement and cooling from
 measurements; investigate PREEMPT_RT if the standard kernel cannot meet deadlines.
 
 ## State, persistence and recovery
+
+The first slice uses a validated fixed schema, atomic JSON save/load, runtime
+mutes outside presets and explicit restart on audio faults. Prepared transactions now support live parameter edits through a single atomic
+slot. Related edits begin together at block boundaries, with bounded transitions
+and preserved unrelated state. Topology edits/recalls use mute/reconfigure/resume.
+The rest of this section describes the longer-term target.
 
 Use a fixed, versioned configuration schema. Presets contain processing, setup
 selections and profile references; mutes, RTA preferences and utility/access settings

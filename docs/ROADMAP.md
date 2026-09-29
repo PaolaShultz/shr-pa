@@ -3,9 +3,10 @@
 **Current scope: two program inputs, six outputs, one separate setup microphone.**
 The [DriveRack function map](DRIVERACK_MAP.md) is the complete inventory for the
 PA2 reference: processing, setup, measurement, presets, operation, remote control,
-maintenance and hardware differences. Everything audio-related remains planned.
+maintenance and hardware differences. The first engine, offline tools and direct ALSA slice now work; see [status](STATUS.md).
 
-This is an ordered plan, not a commitment that every stage will succeed. Keep all
+Stages describe feature groups, not a requirement to finish hardware qualification
+before DSP work. P2 and initial P3/P7 work proceed independently of P1. Keep all
 mapped functions visible as work progresses. LR24 is the first/default crossover.
 Other reference slopes stay on the compatibility backlog. Matrix routing,
 advanced patching, eight-point positional RTA and the later nine-channel layout
@@ -16,27 +17,36 @@ are [future work](FUTURE.md).
 Rust package, toolchain/lockfile, offline 40×13 terminal shell, MIT license,
 illustrated documentation and Linux x86-64/ARM64 CI. No audio device is opened.
 
-## P1 — qualify the Pi and interface
+## P1 — capability-based transport and eventual hardware qualification
 
-Covers H01–H04. Inspect the UMC1820 when attached: stable device identity, capture
+**Initial stereo backend exercised; full hardware acceptance pending.**
+Use available interfaces by capabilities with explicit physical mappings. A stereo
+card runs all six logical outputs; unmapped channels remain available offline.
+UMC1820 availability and channel qualification never gate DSP implementation.
+
+Covers H01–H04. Inspect the UMC1820 when eventually attached: stable device identity, capture
 and playback formats independently, negotiated rates/channel counts/periods,
 clocking, physical gain/pad/monitoring controls and actual socket mapping. Bind
 two program inputs, a separate mic and six output roles only after verification.
 If the native USB stream has more channels, process the required ones and clear
 all unused playback channels. No implicit sample-rate conversion or device fallback.
 
-Implement the direct ALSA duplex bench first. Start with read/write and explicit
+Develop the direct ALSA duplex bench alongside the offline engine. Start with read/write and explicit
 conversion; compare mmap only if supported and useful. Handle partial transfers,
 interrupts, stream priming, capture/playback readiness, xruns and disconnects.
 
-Try 48 kHz and supported 128/64/32-frame periods with supported buffer/period
-counts. Compare 96 kHz only after a stable baseline. Record actual negotiated
+Use 48 kHz, 128-frame periods and 512-frame buffers as the development request.
+Smaller periods remain unqualified; the 64-frame trial failed. Do not infer a
+32-frame operating target from the earlier short observation. Compare 96 kHz only after a stable baseline. Record actual negotiated
 values and physical loopback latency. These are test points, not promised settings.
 
 **Exit:** repeatable 2×6 mapping, duplex operation, measured transport latency and
 fault behavior. Preserve measurements with kernel/firmware/USB/thermal context.
 
-## P2 — fixed signal path, crossover and protection
+## P2 — fixed signal path, crossover and protection (first slice working)
+
+See [DSP behavior](DSP.md) and [first-slice evidence](verification/0003-engine.md).
+Live filter/delay transitions now work; calibrated physical protection remains pending.
 
 Covers C01–C04, D07–D10, O01–O02. Create a DSP library with fixed-size channel and
 processor storage. Implement the configuration table in the map; no general graph
@@ -59,7 +69,12 @@ Unused outputs remain zero; faults do not bypass crossover or protection.
 **Exit:** offline impulse/sweep, mono/stereo routing, numerical-fault, delay,
 limiter and mute tests; render allocation checks; low-level bench loopback.
 
-## P3 — full processing controls and presets
+## P3 — full processing controls and presets (core modules working)
+
+GEQ, bell/shelf PEQ, stereo-linked compressor, prepared live edits, compact module
+controls and v2 presets with explicit migration are implemented. See
+[verification](verification/0004-live-controls.md). Curves/restore, extended
+crossover/limiter modes, preset library and recovery remain pending.
 
 Covers D01–D03, D06, D08–D11, O04–O05. Add 31-band GEQ, dedicated eight-band room
 PEQ, eight-band speaker PEQs, compressor and full parameter/bypass controls.
@@ -192,4 +207,5 @@ Anything unfinished retains its ID and pending status.
 schema, protection, command and recovery tests belong there. Hardware sessions,
 long soaks and exhaustive/one-time research are explicit opt-in tasks. Each stage
 starts with focused tests; shared engine/model/render changes require the full
-normal suite. All audio validation is pending in the current scaffold.
+normal suite. Offline DSP regressions and short AudioBox duplex evidence now exist; physical
+loopback and full hardware acceptance remain pending.

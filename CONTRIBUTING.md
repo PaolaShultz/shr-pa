@@ -1,6 +1,6 @@
 # Contributing
 
-This project is at the scaffold stage. Read [status](docs/STATUS.md) and the
+This project has a working first DSP/offline/ALSA slice. Read [status](docs/STATUS.md) and the
 [roadmap](docs/ROADMAP.md) before extending it. Keep proposed features distinct
 from implemented and hardware-verified behavior.
 

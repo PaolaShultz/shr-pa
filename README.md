@@ -2,88 +2,76 @@
 
 # SHR PA
 
-**A Rust PA management system taking shape on Raspberry Pi 5.**
+**Experimental Rust PA management for Raspberry Pi 5 and Linux.**
 
-[![Status: highly experimental](https://img.shields.io/badge/status-highly_experimental-e6ac55)](docs/STATUS.md)
-[![MIT license](https://img.shields.io/badge/license-MIT-65d6c4)](LICENSE)
-[![Target: Raspberry Pi 5](https://img.shields.io/badge/target-Raspberry_Pi_5-c51a4a)](docs/HARDWARE.md)
 [![Rust checks](https://github.com/PaolaShultz/shr-pa/actions/workflows/ci.yml/badge.svg)](https://github.com/PaolaShultz/shr-pa/actions/workflows/ci.yml)
 
-[Roadmap](docs/ROADMAP.md) · [Architecture](docs/ARCHITECTURE.md) · [Hardware](docs/HARDWARE.md) · [Development](CONTRIBUTING.md)
+[Run commands](docs/RUNNING.md) · [Status](docs/STATUS.md) · [DSP behavior](docs/DSP.md) · [Roadmap](docs/ROADMAP.md) · [Hardware](docs/HARDWARE.md)
 
-> **Highly experimental. Scaffold stage.** The executable is an offline terminal
-> shell. Audio processing, device streaming, and speaker protection are not
-> implemented. There is no measured latency result yet.
+SHR PA is a hardware-independent **2-input × 6-output** processor:
+LR24 full-range/two-way/phase-compensated three-way layouts, mono selection/bass
+summing, 31-band GEQ, bell/shelf PEQ, stereo-linked compression, delays,
+gain/polarity, ramped mutes, linked peak limiters and meters.
+Six-channel offline WAV rendering works without an audio interface. Direct ALSA
+runs selected logical outputs on the physical channels available today, with no
+implicit stereo mixdown.
 
-## The direction
+The connected AudioBox USB 96 has exercised the stereo path. **UMC1820 is a future
+target, not a development prerequisite.** Analog latency and speaker protection
+are unmeasured; no loopback is connected. See the [bench record](docs/verification/0003-engine.md).
 
-First, plan and build the DriveRack PA2 functions in a simple **2-input,
-6-output** processor. Use Rust, Raspberry Pi 5, a Behringer UMC1820 and a small
-touchscreen terminal on 64-bit Linux Lite.
+## Build and run
 
-- **Processing:** LR24 first, graphic/parametric EQ, compression, subharmonic
-  synthesis, mono bass, input/output delays and limiters.
-- **Setup and measurement:** one separate measurement mic, RTA, noise generation,
-  level balancing, AutoEQ, feedback suppression and guided/manual setup.
-- **Operation:** presets, speaker/amplifier profiles, meters, mutes, startup
-  behavior, lockout/reset, remote terminal control and software maintenance.
-
-The [full function map](docs/DRIVERACK_MAP.md) includes source references,
-control ranges, implementation stages and acceptance checks. These are planned
-capabilities, not working DSP or a claim of identical proprietary algorithms.
-
-**Future:** matrix mixing, advanced routing, eight-point positional RTA and the
-later nine-channel arrangement. See [future scope](docs/FUTURE.md); these do not
-block the initial 2×6 system.
-
-![Planned 2-input, 6-output processing; DSP is not implemented](docs/assets/signal-flow.svg)
-
-## Try the scaffold
-
-Requires Rust **1.97.1** through rustup, a C linker, and Linux. No audio development
-headers are needed at this stage. Ensure `~/.cargo/bin` is on `PATH`.
+Requires Linux, Rust **1.97.1** via rustup, a C linker, `pkg-config` and ALSA headers
+(`libasound2-dev` on Debian/Ubuntu).
 
 ```sh
 cargo build --release --locked
+./target/release/shr-pa init preset.json
+./target/release/shr-pa render preset.json sweep six-outputs.wav 5 --unmute
 ./target/release/shr-pa
-
-# Plain text previews work without a terminal or audio hardware.
-./target/release/shr-pa --snapshot
-./target/release/shr-pa --snapshot features
-./target/release/shr-pa --help
 ```
 
-Use arrows or Tab to change pages; `q`, Escape or Ctrl+C exits. Footer buttons
-accept terminal mouse events. Touch needs a terminal/console bridge that emits
-those events; raw touchscreen input is not implemented. The initial layout is
-**40×13**, following the compact SHR audio projects. Smaller terminals show a
-resize message. The application restores terminal state on normal exit and
-handled termination signals.
+The default terminal is an offline preset editor with real DSP previews, not a
+hardware stream. Use Tab/arrows and footer mouse buttons for pages; `q` exits.
+`s`/`l` save/load `preset.json`; `r` renders a preview; `1`…`6` toggle logical mutes.
+The compact layout is **40×13**. Terminal state is restored on handled exits.
 
-![Actual scaffold text rendered as an illustration](docs/assets/terminal.svg)
+![Offline engine editor](docs/assets/terminal.svg)
 
-No audio/MIDI connections, configuration files, services, or system settings are
-created by running the shell. The screen above comes from `--snapshot`; it is
-not a live audio display.
+## Explicit live operation
 
-## What comes next
+```sh
+./target/release/shr-pa devices
+# Substitute the selected ALSA card ID. Starts muted; u unmutes, q stops.
+./target/release/shr-pa live preset.json \
+  hw:CARD=CARD_ID,DEV=0 hw:CARD=CARD_ID,DEV=0 \
+  2 2 0,1 0,1,-,-,-,- 10 --ui
+```
 
-1. Qualify the actual UMC1820 on this Pi: formats, channel map, clocking and duplex timing.
-2. Build the direct ALSA streaming harness and measure stable buffer sizes.
-3. Implement and verify the fixed 2×6 processing chain and protection.
-4. Work through the full function map: setup, measurement, processing and operation.
+Maps are zero based. The six entries select physical outputs for
+H-L/H-R/M-L/M-R/L-L/L-R; `-` leaves a logical output unmapped. All six DSP outputs
+still run and remain renderable offline. Invalid physical mappings fail locally.
+Live controls use prepared transactions and bounded transitions for gain, polarity,
+EQ, dynamics and delays. Tab opens module controls; `v` selects a module, `n` a
+parameter and `x`/`X` edits it. Layout/recall uses mute/reconfigure/resume.
+Presets use schema v2; `migrate OLD NEW` explicitly converts v1 files. [Full instructions](docs/RUNNING.md).
 
-See the [implementation roadmap](docs/ROADMAP.md) for algorithms, dependencies,
-and acceptance criteria, and [validation](docs/VALIDATION.md) for test classes.
+## Remaining scope
 
-## Related projects
+The [complete PA2 function inventory](docs/DRIVERACK_MAP.md) still tracks GEQ curves/restore,
+extended crossover/limiter modes, subharmonic synthesis, feedback suppression, measurement/RTA,
+AutoEQ/setup workflows, preset/profile management, remote controls and maintenance.
+These remain planned or partial, rather than being presented as implemented.
+There is no claim of proprietary dbx algorithm equivalence.
 
-This follows the Rust, Linux and terminal conventions used in
-[SHR DAW](https://github.com/PaolaShultz/shr-daw),
-[SHR FX](https://github.com/PaolaShultz/shr-fx), and
-[SHR Rec](https://github.com/PaolaShultz/shr-rec).
-It builds independently of those repositories.
+General matrices, advanced routing, eight-point positional RTA and the later
+nine-channel arrangement remain [future work](docs/FUTURE.md).
 
-MIT licensed. Original documentation artwork is included under the same license.
-dbx, DriveRack, Behringer and Raspberry Pi are their respective owners' marks;
-SHR PA is an independent project.
+[Validation and test policy](docs/VALIDATION.md) · [Contributing](CONTRIBUTING.md)
+
+Built independently of related [SHR DAW](https://github.com/PaolaShultz/shr-daw),
+[SHR FX](https://github.com/PaolaShultz/shr-fx) and
+[SHR Rec](https://github.com/PaolaShultz/shr-rec) projects.
+MIT licensed. Documentation artwork is original. Vendor marks belong to their
+owners; SHR PA is an independent project.

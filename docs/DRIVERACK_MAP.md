@@ -1,7 +1,7 @@
 # DriveRack function map — 2 inputs × 6 outputs
 
-**Planning baseline: dbx DriveRack PA2. All audio functions below are planned,
-not implemented.** This maps the PA2's documented functions, including setup,
+**Reference baseline: dbx DriveRack PA2. The initial DSP/offline/ALSA slice is
+implemented; the inventory below includes substantial remaining work.** This maps the PA2's documented functions, including setup,
 operation and maintenance. It does not claim coverage of every other DriveRack
 model or identical proprietary algorithms.
 
@@ -38,7 +38,8 @@ behavior must be measured independently.
 ### Configurations to support
 
 Logical output names: **H-L, H-R, M-L, M-R, L-L, L-R**. These are logical labels;
-UMC1820 socket numbers are assigned only after channel qualification.
+physical sockets are chosen explicitly from the available interface channels.
+A stereo card does not reduce the six logical outputs. UMC1820 is a future target.
 
 | Configuration | High pair | Mid pair | Low pair |
 | --- | --- | --- | --- |
@@ -159,7 +160,7 @@ verified, usable source data. Generic templates are not branded speaker presets.
 
 | ID / reference | Treatment in SHR PA | Evidence needed / stage |
 | --- | --- | --- |
-| H01 — analog I/O and converters; pp. 3–7, 64 | Use the UMC1820 for two program inputs, one setup-mic input and six outputs. Logical count stays 2×6; measurement capture is separate. USB stream width may be larger. | Physical mapping, format/rate, full-scale voltage, noise/crosstalk/latency; no borrowing PA2 measurements. P1/P8 |
+| H01 — analog I/O and converters; pp. 3–7, 64 | Eventually qualify the UMC1820 for two program inputs, one setup-mic input and six outputs. Develop DSP now on available interfaces with explicit partial physical maps. Logical count stays 2×6; measurement capture is separate. USB stream width may be larger. | Physical mapping, format/rate, full-scale voltage, noise/crosstalk/latency; no borrowing PA2 measurements. P1/P8 |
 | H02 — input sensitivity and ground-lift controls; p. 7 | Document actual interface gain/pad/line controls and cabling. Software cannot supply an analog ground lift or undo ADC overload. | Bench calibration and wiring guide for the actual hardware. P1 |
 | H03 — microphone power and response; pp. 4, 16, 64 | Use the interface's actual phantom-power controls and verified microphone calibration. Do not assume dbx's phantom voltage or RTA-M correction is present. | Mic compatibility and actual power grouping confirmed. P1/P4 |
 | H04 — Type IV conversion; pp. 3, 64 | Explicit hardware difference: the UMC1820 does not become a dbx Type IV converter. Provide clipping/headroom indication and measured input calibration. | Record the distinction; no claim of matching proprietary ADC behavior. P1 |
@@ -174,9 +175,19 @@ remote application/networking; updates; signal order; hardware specifications.
 Warranty/service terms and vendor support contacts are documentation, not DSP or
 control functions to implement.
 
-All C/D/M/O entries are **planned**. H entries are **hardware adaptations or
-explicit differences**, with validation pending. The current offline shell is
-not counted as implementing their live controls. Exact proprietary response,
+Rows retain their complete target scope. The first working slice covers C01 and
+most C02/C03, D01 linked/separate 31-band GEQ with bypass (curves pending),
+D02/D03 bell/shelf PEQ with bypass (restore/PA2 slope units pending), D06 linked
+compressor with hard/soft knee and explicit timing, D07/D08 LR24/D09 hard sample limiter/D10,
+and initial D11/O01/O02/O04/O05 controls and presets. C04 remains partial because
+the other planned modules are absent. M03 has deterministic white noise and
+other bench sources; pink noise and measurement workflows remain pending.
+Live transactions, filter/delay transitions and compact module controls extend
+D11/O01/O04/O05; see [new evidence](verification/0004-live-controls.md).
+No broader row is claimed complete. H01 has short stereo AudioBox transport
+evidence; six-channel physical qualification and calibration remain pending.
+See [DSP contract](DSP.md), [status](STATUS.md),
+[tests](../tests/engine.rs) and [bench evidence](verification/0003-engine.md). Exact proprietary response,
 undocumented app-only behavior and vendor profile data require separate evidence;
 this is a complete map of the public manual's function categories, not a claim
 of reverse-engineered firmware equivalence.
