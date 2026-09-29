@@ -1,0 +1,18 @@
+[package]
+name = "shr-pa"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.97.1"
+license = "MIT"
+publish = false
+repository = "https://github.com/PaolaShultz/shr-pa"
+description = "Highly experimental Raspberry Pi PA management system"
+
+[dependencies]
+crossterm = "=0.26.1"
+signal-hook = "=0.3.18"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true
