@@ -23,10 +23,16 @@ start with the focused checks for the changed behavior.
 
 ## Later normal tests
 
-Add deterministic DSP response tests, graph/schema tests, finite-value and
+Add deterministic DSP response tests, fixed-configuration/schema tests, finite-value and
 protection invariants, bounded command handoff and recovery regressions when
 those components exist. Add allocation checks around real render work. Compare
-whole graph output against references, including multiway crossover sums.
+whole 2×6 chain output against references, including multiway crossover sums.
+
+Use [function-map IDs](DRIVERACK_MAP.md) to link each future test/evidence record
+to the planned capability. Include all fixed configuration families, inactive
+outputs, single-mic isolation, full processing load, parameter/bypass transitions,
+setup cancellation, presets/global-state ownership and local/remote command races.
+Advanced matrix and eight-point measurement tests belong to future work.
 
 ## Opt-in bench and research classes — not implemented yet
 
@@ -38,7 +44,7 @@ current production behavior. Never represent absence of hardware tests as a pass
 
 Planned hardware record: board/OS/kernel/firmware, USB topology, device identity,
 clock source, rates, native formats, channel map, period and buffer sizes,
-processing graph revision, temperature/throttling, xruns, maximum and percentile
+processing configuration and software revision, temperature/throttling, xruns, maximum and percentile
 render time, round-trip latency distribution and observed transients.
 
 Initial proposed acceptance: repeated startup/recovery; then an eight-hour

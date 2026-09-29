@@ -3,11 +3,13 @@
 ## Scope
 
 Highly experimental Rust PA management project for Raspberry Pi 5 and Linux Lite.
-UMC1820 is the intended interface. Preserve the distinction between implemented,
-planned and hardware-verified behavior. Do not infer channel assignments: up to
-eight measurement microphones are a possible venue-setup use; later operation
-uses nine channels whose roles remain unspecified. 4x8 is an example, not a fixed
-architecture. Do not add live audio or change host audio settings as scaffold work.
+UMC1820 is the intended interface. Preserve implemented, planned and
+hardware-verified status. Current scope is the complete DriveRack PA2 function
+plan in fixed 2-input/6-output configurations, with one separate setup mic.
+LR24 is first/default. General matrices, advanced routing, eight-point positional
+RTA and the later nine-channel arrangement are future work; do not make them
+prerequisites or infer their roles. See docs/DRIVERACK_MAP.md and docs/FUTURE.md.
+Do not add live audio or change host audio settings as planning/scaffold work.
 
 ## Validation
 

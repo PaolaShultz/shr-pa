@@ -27,9 +27,10 @@ power is grouped across inputs 1–4 and 5–8. Main outputs 1–2 have monitori
 controls; line outputs 3–10 are separate sockets. Optical mode changes require
 care because the device resets. Check the guide before cabling or changing mode.
 
-These are hardware facts, not a project channel allocation. The nine-channel
-operating arrangement will be documented when its roles are supplied. Eight
-measurement mics are a possible venue-setup use, not a permanent input assignment.
+The current logical allocation is two program inputs, one separate setup-mic
+input and six outputs. Exact UMC1820 socket mapping still needs qualification.
+The later nine-channel arrangement and possible eight-mic venue measurements
+are future work; neither changes the initial 2×6 qualification target.
 
 ## Observed here — 2026-09-29
 

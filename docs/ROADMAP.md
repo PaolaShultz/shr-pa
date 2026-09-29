@@ -1,190 +1,195 @@
-# Implementation roadmap
+# Implementation roadmap — DriveRack functions in 2×6
 
-This is the initial plan, not a list of working features. The first functional
-reference is the dbx DriveRack family. PA2 is a concrete starting reference for
-its processing feature list, not a restriction on the requested routing.
+**Current scope: two program inputs, six outputs, one separate setup microphone.**
+The [DriveRack function map](DRIVERACK_MAP.md) is the complete inventory for the
+PA2 reference: processing, setup, measurement, presets, operation, remote control,
+maintenance and hardware differences. Everything audio-related remains planned.
 
-## Requirements carried forward
+This is an ordered plan, not a commitment that every stage will succeed. Keep all
+mapped functions visible as work progresses. LR24 is the first/default crossover.
+Other reference slopes stay on the compatibility backlog. Matrix routing,
+advanced patching, eight-point positional RTA and the later nine-channel layout
+are [future work](FUTURE.md).
 
-| Requested | Treatment in this plan |
-| --- | --- |
-| Raspberry Pi 5, Rust, Linux Lite, terminal | Primary platform and implementation |
-| UMC1820 | First interface to qualify |
-| Extremely low buffers and synchronous processing | Measure direct duplex ALSA; no extra block queue between DSP stages |
-| LR24 | First crossover type |
-| Matrix / crossover patching, e.g. 4×8 | Flexible topology; final dimensions pending |
-| Mono sums, delays, limiters | Core processing |
-| Up to 8 simultaneous measurement sources | Possible venue-setup measurement configuration |
-| Later use of 9 channels | Preserve as a requirement; roles await the owner's explanation |
-| RTA, automatic EQ, automatic feedback suppression | Separate implementation milestones |
-| Small touch UI; optional controllers | Terminal control first, MIDI optional |
+## P0 — foundation (done)
 
-No layout is inferred from the nine-channel statement. Setup microphone use
-and later operating use are not assumed to happen simultaneously.
+Rust package, toolchain/lockfile, offline 40×13 terminal shell, MIT license,
+illustrated documentation and Linux x86-64/ARM64 CI. No audio device is opened.
 
-## M0 — project foundation
+## P1 — qualify the Pi and interface
 
-- [x] Standalone Rust package, pinned toolchain and lockfile.
-- [x] Offline terminal shell, keyboard and terminal mouse navigation.
-- [x] MIT license, public-facing docs and original diagrams.
-- [x] Normal CI checks on Linux x86-64 and ARM64 configured.
-- [x] Hardware evidence and implementation plan.
+Covers H01–H04. Inspect the UMC1820 when attached: stable device identity, capture
+and playback formats independently, negotiated rates/channel counts/periods,
+clocking, physical gain/pad/monitoring controls and actual socket mapping. Bind
+two program inputs, a separate mic and six output roles only after verification.
+If the native USB stream has more channels, process the required ones and clear
+all unused playback channels. No implicit sample-rate conversion or device fallback.
 
-Exit criterion: build and normal checks pass on this Pi; shell never opens audio.
+Implement the direct ALSA duplex bench first. Start with read/write and explicit
+conversion; compare mmap only if supported and useful. Handle partial transfers,
+interrupts, stream priming, capture/playback readiness, xruns and disconnects.
 
-## M1 — interface qualification and duplex transport
+Try 48 kHz and supported 128/64/32-frame periods with supported buffer/period
+counts. Compare 96 kHz only after a stable baseline. Record actual negotiated
+values and physical loopback latency. These are test points, not promised settings.
 
-Implement an explicit device-inspection command, then a separate opt-in duplex
-bench harness. Enumerate the ALSA hardware endpoints, rates, capture/playback
-formats, channel counts, period constraints and controls independently. Record
-actual negotiated values, not just requested ones. Identify the device by stable
-properties and reject ambiguity; do not assume ALSA card 0.
+**Exit:** repeatable 2×6 mapping, duplex operation, measured transport latency and
+fault behavior. Preserve measurements with kernel/firmware/USB/thermal context.
 
-Use one synchronous processing thread with direct `hw:` ALSA access. Start with
-read/write access and explicit format conversion; compare mmap only if supported
-and measurement shows a benefit. Handle partial transfers, interrupts, startup
-priming, mismatched capture/playback readiness, xruns and unplugging explicitly.
-Capture and playback scheduling must be measured before settling their wakeup
-strategy. No automatic sample-rate conversion or fallback device.
+## P2 — fixed signal path, crossover and protection
 
-Try 48 kHz first as a bench baseline, then compare 96 kHz. Sweep supported 128,
-64 and 32 frame periods with supported period counts. These are experiments,
-not promised operating settings. Investigate smaller periods only after stable
-results. Save loopback latency, worst processing time, xruns, thermal state and
-negotiated configuration together.
+Covers C01–C04, D07–D10, O01–O02. Create a DSP library with fixed-size channel and
+processor storage. Implement the configuration table in the map; no general graph
+compiler or matrix UI. Keep processing order fixed and paired band parameters clear.
 
-**Exit:** verified physical channel map, stable duplex timing, repeatable
-round-trip measurement and explicit failure behavior. See [hardware](HARDWARE.md)
-and [validation](VALIDATION.md).
+Build gain/polarity/ramped mute, explicit mono sum, LR24, pre-delay, band delays,
+peak limiter and meters. Use two cascaded Butterworth sections per LR24 edge;
+verify complete three-way summation/phase, not just a pair of filters. Alignment
+and compensation decisions must be represented in the response tests.
 
-## M2 — DSP primitives and protection
+Implement delays as preallocated circular buffers. At 48 kHz, two 100 ms input
+lines plus six 10 ms output lines require 12,480 sample slots, about 49 KiB in
+f32 before storage padding; memory is not the limiting factor here. Avoid abrupt
+read-position jumps during live adjustment; use bounded transitions.
 
-Implement an offline library before attaching speaker outputs. Each processor
-must work independently of terminal, ALSA and persistence code.
+Implement the limiter envelope with a measured overshoot/recovery bound. Tie
+output protection to actual calibration; any lookahead is an explicit delay.
+Unused outputs remain zero; faults do not bypass crossover or protection.
 
-| Processor | Implementation approach | Required evidence |
-| --- | --- | --- |
-| Gain / polarity / mute | Sample ramps, bounded finite parameters | Step transitions, silence, clipping/headroom behavior |
-| Mono sum | Explicit input weights; averaging and unity sum are distinct | Correlated and uncorrelated signals; documented gain |
-| Parametric EQ | Biquads; coefficients computed outside render | Reference responses, stability, extreme legal settings |
-| Graphic EQ | Fixed frequency bands using the verified EQ core | Band and combined response; headroom under multiple boosts |
-| Compressor | Linked or independent envelope; threshold, ratio, knee, attack/release | Static transfer curve, transients, pumping and channel tracking |
-| LR24 | Two cascaded second-order Butterworth sections per branch | −6 dB at crossover, complementary summed magnitude and phase, impulse response |
-| Delay | Preallocated circular storage; integer delay first | Exact sample alignment, wraparound, maximum memory; click-free changes |
-| Limiter | Peak envelope, configurable attack/release and channel linking | Overshoot, bursts, recovery, sustained limiting and channel balance |
-| Output handling | Finite checks, explicit conversion/clipping behavior | NaN/Inf faults, full-scale conversion and mute |
+**Exit:** offline impulse/sweep, mono/stereo routing, numerical-fault, delay,
+limiter and mute tests; render allocation checks; low-level bench loopback.
 
-Use double precision for coefficient design; compare float and double state on
-ARM64 before selecting the implementation. Flush or handle denormals deliberately.
-Avoid unsafe coefficient interpolation through unstable intermediate filters;
-validate bounded transitions and budget any temporary dual processing.
+## P3 — full processing controls and presets
 
-LR24 is the requested default. Its branches can sum flat with correct alignment;
-it is not linear phase. Multiway split trees need phase accounting across all
-branches, including any all-pass compensation. Test the complete multiway sum,
-not only isolated pairs. Physical driver alignment remains a measurement task.
-See [Rane's LR crossover primer](https://www.ranecommercial.com/legacy/note160.html).
+Covers D01–D03, D06, D08–D11, O04–O05. Add 31-band GEQ, dedicated eight-band room
+PEQ, eight-band speaker PEQs, compressor and full parameter/bypass controls.
+Implement the remaining mapped crossover families after LR24 is verified.
 
-Limiter design must make the latency tradeoff explicit: a reactive limiter does
-not guarantee zero overshoot; lookahead adds a known delay. Set final behavior
-from the protection requirements, then measure it. Amplifier gain and speaker
-limits are needed before software thresholds can represent physical protection.
+Design coefficients outside render. Use double precision for coefficient design;
+measure f32 versus f64 state before choosing. Check shelf response and extreme
+Q settings. Do not interpolate filters through unstable coefficient sets. Bound
+any extra work for transitions and preserve channel balance in linked dynamics.
 
-**Exit:** normal deterministic DSP tests pass, bounded render work is measured,
-and protection limits are documented. No claim of speaker safety from a unit test.
+Use a versioned preset schema for fixed configurations, typed parameters, setup
+selections and profile references. Keep global mutes/preferences and working edits
+separate. Add immutable templates, at least 75 user slots, naming/copy/recall/save,
+atomic writes, working-state recovery and migrations. Store no active test-signal
+intent. Implement our own tonal curves and identify them as such.
 
-## M3 — routing and system processing
+**Exit:** filter/dynamics reference tests, full-configuration renders, extreme
+parameter tests, curve/restore tests and persistence/recovery tests. Benchmark the
+fully enabled path, not only a minimal LR24 configuration.
 
-Compile a validated, directed acyclic graph into a fixed processing order.
-Represent physical ports separately from logical sources, sums, crossover
-branches and outputs. Use names/IDs; do not bake a stereo feed or eight-output
-layout into storage. Begin with the owner's supplied topology when available.
+## P4 — measurement input, RTA and test signals
 
-A 4×8 matrix is an example to exercise routing, not the permanent graph size.
-Support weighted fan-in, fan-out, mono sums, polarity, linked crossover groups,
-input and output EQ, and independent alignment delays. Reject cycles, missing
-nodes, invalid parameters, duplicate physical ownership and graphs exceeding the
-preallocated budget. Include worst-case correlated summing in headroom checks.
-Do not let routing changes silently bypass an output's protection chain.
+Covers M01–M03, H03. Capture one setup microphone on the same hardware clock;
+keep it isolated from PA playback. Add calibration, signal level and clipping checks.
+Feed an analysis worker through a bounded tap. Drops are visible and invalidate
+affected measurements; analysis never delays audio.
 
-Prepare graph changes off the render thread, commit at a block boundary, and
-retire old state outside real time. Bound command volume. Incompatible topology
-changes use a defined mute/reconfigure/resume transition. Continuous values ramp.
-Persistence gets a versioned schema, validation, atomic save and last-known-good
-recovery before it can control live output.
+Implement a windowed FFT and calibrated 31-band power display, slow/fast response,
+peak hold, display offset and readable views. Begin FFT-size experiments off the
+audio path. Add deterministic white noise, pink shaping and a controlled sweep
+source for P5. Generate excitation in bounded render work, outside any display loop.
 
-**Exit:** routing/reference tests, boundary and recovery tests, graph allocation
-checks and full normal suite pass. The final nine-channel layout must be defined
-before its profile is built.
+**Exit:** tone/noise/calibration tests, all display controls, generator level and
+insertion-point tests, startup/cancel/fault stop, and real single-mic capture.
 
-## M4 — RTA and measurement
+## P5 — setup, level balancing, AutoEQ and tuning profiles
 
-Support up to eight simultaneous acquisition channels for venue setup. Each gets
-calibration metadata, level/clipping indication and a common time base. Use a
-bounded analysis tap so FFT work cannot delay audio. Record dropped analysis
-frames instead of slowing the render thread.
+Covers M04–M07, M09, O06. Implement the manual setup flow and generic 2×6
+configurations before relying on profiles. Define a profile format for speakers
+and amplifiers with units, provenance and validation. Allow manual/unlisted equipment.
+Apply speaker EQ, crossover, polarity, delay and limiter settings through the same
+validated configuration path; do not invent manufacturer tunings.
 
-Use windowed FFTs and power averaging with selectable resolution/smoothing.
-Plan 2k–16k FFT sizes as initial experiments; long windows improve frequency
-resolution but delay the display, not the audio path. Show individual microphones
-and explicit spatial averages. Do not average unaligned raw waveforms and call
-that a room response. Add calibrated SPL only when sensitivity and gain are known.
+For level balancing, measure the relevant speakers/bands, estimate differences,
+and either guide physical adjustment or apply bounded, visible trims. Check noise,
+clipping and headroom. Make trims removable and retain the old configuration.
 
-**Exit:** known-tone/noise tests, per-channel calibration tests, multi-input
-synchronization checks and measured analysis CPU cost on the Pi.
+For AutoEQ, measure sweeps using one microphone, with up to four sequential
+positions in the reference workflow. Average aligned response estimates/powers,
+not unaligned raw audio. Fit up to eight PEQ bands off-thread with limits on boost,
+Q and correction range. Avoid filling cancellation nulls. Provide the three target
+curve roles in the map using our documented curves. Keep automatic/manual/flat
+states separate. Apply and verify with a fresh measurement.
 
-## M5 — automatic EQ
+Compose setup, level-only, EQ-only, combined and feedback stages into a cancellable
+wizard. Support rerunning one stage on the existing configuration or starting a
+new setup; retain completed work and remember selections/name preferences.
 
-Build on verified measurements: reject clipped or weak captures, apply microphone
-calibration, choose a target curve and fit a bounded set of PEQ filters off the
-render thread. Limit boost, Q and correction range; avoid trying to fill deep
-cancellation nulls. Account for measurement position and repeatability.
+**Exit:** synthetic known-response and poor-data cases, calibration/trim tests,
+all configuration paths, cancel/retry/partial rerun, then repeatable venue evidence.
 
-The operator sees a proposed curve and can audition, apply or revert it. Keep the
-previous settings until the new set is accepted. Measurement excitation is an
-explicit setup action with an immediate stop control. Verify the result with a
-new measurement; do not judge success only by the fitter's own predicted curve.
+## P6 — feedback suppression and subharmonic synthesis
 
-**Exit:** synthetic room cases, poor-data rejection, repeatability and measured
-venue trials. Algorithm details remain open until measurement data exists.
+Covers D04–D05, M08. Both belong to the 2×6 capability plan.
 
-## M6 — automatic feedback suppression
+Feedback: start with narrowband tracking and persistence/growth evidence in a
+worker, then a bounded command path to twelve notch slots. Implement fixed/live
+allocation, the three width policies, live replacement, clearing, gradual timed
+lifting and per-filter inspection. Use program-input evidence; test mono-analysis
+cancellation and define the detector's actual policy explicitly. Add guided
+ring-out and automatic handoff to live filters. Evaluate false triggers on speech,
+flute, sustained notes and recorded music. Document detection delay and limits.
 
-Track narrowband peaks over time with persistence/growth criteria and safeguards
-against treating sustained musical notes as feedback. Apply a bounded number of
-notch filters with limits on width and depth. Distinguish setup ring-out filters
-from live adaptive filters; expose filter state, hold and clear controls.
+Bass synthesis: band-limit the mono analysis feed, evaluate an octave-divider
+with tracked envelope, shape the two output regions and mix their bounded levels
+into the stereo dry path. Compare alternative generators only if tracking/artifact
+tests fail. Gate silence/noise, remove DC, and test interaction with compressor,
+crossover and limiter. Default off. No proprietary dbx algorithm is claimed.
 
-Run detection outside the render thread and apply validated filter commands at
-block boundaries. Test on recorded speech/music, tones, feedback onset and changing
-acoustic paths. Quantify false positives, detection delay and remaining headroom.
+**Exit:** synthetic signal/feedback regressions, filter lifecycle tests, bounded
+CPU, sustained listening tests and controlled acoustic trials. Record one-time
+audition evidence and keep its renderer opt-in.
 
-**Exit:** repeatable feedback cases and listening/venue evidence, with documented
-limits. This is our implementation, not a clone of dbx's proprietary AFS algorithm.
+## P7 — complete local operation
 
-## M7 — operating interface and appliance validation
+Covers O01–O10 and H05. Implement the live terminal flows for every mapped module,
+preset and wizard. Provide configuration, dynamics, RTA and system-info views,
+quick module access, band stepping, visible current preset/edits and all six mutes.
 
-Replace scaffold pages with the actual routing, processing and measurement flows.
-Retain the compact terminal convention where it fits; verify the chosen display's
-physical touch targets. Keep live level, mute/fault state and the selected path
-visible. Separate edits from their applied state and preserve context on errors.
+Add persistent preferences, timeout, readable display choices, device naming,
+startup mute policy, forced-muted startup, four lockout modes, global-only reset
+and full reset. A reset shows its scope and permits cancellation. Adapt physical
+LCD/demo controls to the terminal explicitly; do not leave source features untracked.
 
-Keyboard access must cover every action. Map terminal touch to the same commands.
-Add direct touch integration only if the chosen console requires it. MIDI is
-optional: learning, pickup and disconnect handling follow after the local UI.
-No renderer or controller may block the audio thread.
+Use common commands for keyboard and touch. Validate physical touch separately
+from terminal mouse tests. Cap refresh rate and telemetry work. Controller or
+rendering stalls must not enter the audio thread. Define and test UI/process
+failure policy before live deployment.
 
-Finish bounded telemetry, startup/recovery, preset migration, thermal testing,
-long duplex soaks and measured end-to-end latency. Select any scheduler/IRQ/kernel
-tuning from results. Provide an opt-in service installer only after lifecycle
-behavior is proven.
+**Exit:** every ID has a reachable local operation and tests for normal use,
+cancel, restart, rejection and recovery. Actual display and touch trials pass.
 
-## DriveRack reference coverage
+## P8 — remote operation, maintenance and full acceptance
 
-The [PA2 feature list](https://dbxpro.com/en-US/products/driverack-pa2) provides a
-concrete comparison: graphic/parametric EQ, automatic EQ, feedback suppression,
-compression, crossover, limiting and alignment delay. Its subharmonic synthesis
-is also a parity item to review after core system management. Networking and
-vendor speaker presets are not assumed requirements for this terminal project.
-Track parity by feature and test evidence; do not label the first DSP build
-“DriveRack equivalent.”
+Covers O06, O11–O13, H01/H05 and integration of all earlier IDs. Keep remote
+controls in scope: authenticated terminal access and a shared command interface
+can expose the same functions without requiring a desktop GUI. Separate the engine
+lifetime from client connections. Use revisioned commands to reject stale edits;
+serialize writes and bound telemetry for slow clients. Support device identity,
+network status, access control and reconnect. Test from the intended client OSes.
+
+Provide optional validated profile/catalog import, versioned releases, update,
+backup/migration and rollback. No update or catalog download may block render.
+Do not require the network for local use or local profiles.
+
+Run the fully enabled 2×6 path while measuring its actual peak load. Validate
+startup-muted operation, all fixed configurations, retained settings, failures,
+restart, disconnect/reconnect, clock loss and physical output transients. Choose
+scheduler/IRQ/affinity/kernel tuning based on evidence. Begin with a proposed
+50% worst-render-time margin and an eight-hour zero-xrun soak under UI/analysis
+load; publish actual results and conditions, not an unqualified latency guarantee.
+
+**Exit:** function-by-function evidence in the map, complete normal test suite,
+recorded hardware/acoustic acceptance and reproducible installation/rollback.
+Anything unfinished retains its ID and pending status.
+
+## Test policy
+
+[Validation](VALIDATION.md) defines the normal suite. Fast DSP, configuration,
+schema, protection, command and recovery tests belong there. Hardware sessions,
+long soaks and exhaustive/one-time research are explicit opt-in tasks. Each stage
+starts with focused tests; shared engine/model/render changes require the full
+normal suite. All audio validation is pending in the current scaffold.

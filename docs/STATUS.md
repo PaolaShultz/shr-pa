@@ -22,8 +22,13 @@ The foundation is built/tested on the target Pi 5. UMC1820 hardware validation,
 physical touchscreen validation, latency measurements and live PA tests remain
 pending. There are no fabricated meters, measurements or benchmark numbers.
 
-## Open details
+## Current plan
 
-The nine-channel operating roles, final matrix topology, physical screen/input
-integration, signal levels and speaker protection limits await further project
-content. They do not block this scaffold and are not filled in with assumptions.
+The [complete PA2 function map](DRIVERACK_MAP.md) and [roadmap](ROADMAP.md) target
+fixed 2-input/6-output configurations with one separate setup microphone. LR24
+is first/default. The map includes all documented function categories, control
+ranges, implementation stages and acceptance checks; none is marked live-complete.
+
+Physical screen/input integration, signal levels and speaker protection limits
+still need hardware detail. Matrix/advanced routing, eight-point positional RTA
+and the later nine-channel arrangement are [future work](FUTURE.md).

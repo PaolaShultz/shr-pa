@@ -17,23 +17,26 @@
 
 ## The direction
 
-Start with the capabilities of a dbx DriveRack, then develop flexible matrix
-routing for more elaborate PA systems. Run on 64-bit Linux Lite, use a small
-touchscreen terminal, and keep the audio path synchronous and lean.
+First, plan and build the DriveRack PA2 functions in a simple **2-input,
+6-output** processor. Use Rust, Raspberry Pi 5, a Behringer UMC1820 and a small
+touchscreen terminal on 64-bit Linux Lite.
 
-- **LR24 crossovers** with flexible patching, mono sums, alignment delays and limiters.
-- **Measurement and tuning:** RTA with up to eight simultaneous microphones as
-  a possibility during venue setup, automatic EQ, and automatic feedback suppression.
-- **A compact control surface:** terminal UI first; additional input devices,
-  including MIDI controllers, can follow where useful.
-- **Hardware target:** Raspberry Pi 5 with a Behringer UMC1820.
+- **Processing:** LR24 first, graphic/parametric EQ, compression, subharmonic
+  synthesis, mono bass, input/output delays and limiters.
+- **Setup and measurement:** one separate measurement mic, RTA, noise generation,
+  level balancing, AutoEQ, feedback suppression and guided/manual setup.
+- **Operation:** presets, speaker/amplifier profiles, meters, mutes, startup
+  behavior, lockout/reset, remote terminal control and software maintenance.
 
-The later operating use involves **nine channels**, with their roles still to be
-specified. Neither that layout nor a fixed 4×8 matrix is imposed by this scaffold.
-The routing ambition is a project goal; there is no price-class comparison or
-performance claim yet.
+The [full function map](docs/DRIVERACK_MAP.md) includes source references,
+control ranges, implementation stages and acceptance checks. These are planned
+capabilities, not working DSP or a claim of identical proprietary algorithms.
 
-![Planned processing architecture; DSP is not implemented](docs/assets/signal-flow.svg)
+**Future:** matrix mixing, advanced routing, eight-point positional RTA and the
+later nine-channel arrangement. See [future scope](docs/FUTURE.md); these do not
+block the initial 2×6 system.
+
+![Planned 2-input, 6-output processing; DSP is not implemented](docs/assets/signal-flow.svg)
 
 ## Try the scaffold
 
@@ -67,8 +70,8 @@ not a live audio display.
 
 1. Qualify the actual UMC1820 on this Pi: formats, channel map, clocking and duplex timing.
 2. Build the direct ALSA streaming harness and measure stable buffer sizes.
-3. Implement and verify the DSP primitives, then matrix routing and protection.
-4. Add measurement, automatic tuning, feedback control, and the operating UI.
+3. Implement and verify the fixed 2×6 processing chain and protection.
+4. Work through the full function map: setup, measurement, processing and operation.
 
 See the [implementation roadmap](docs/ROADMAP.md) for algorithms, dependencies,
 and acceptance criteria, and [validation](docs/VALIDATION.md) for test classes.

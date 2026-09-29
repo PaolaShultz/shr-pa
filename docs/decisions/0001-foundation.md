@@ -1,6 +1,6 @@
 # 0001 — standalone synchronous audio direction
 
-Status: accepted foundation; transport implementation pending.
+Status: accepted foundation; topology paragraph superseded by [decision 0002](0002-driverack-2x6.md). Transport implementation pending.
 
 The project uses Rust on Raspberry Pi 5, with a compact terminal UI. Nearby SHR
 projects established the Rust 1.97.1 toolchain, MIT licensing, offline entry points

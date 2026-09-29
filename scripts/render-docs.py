@@ -38,20 +38,31 @@ for i in range(5):
 parts += [text(718, 343, "ROUTE  /  ALIGN  /  MEASURE", 15, MUTED)]
 (OUT / "banner.svg").write_text(svg(1200, 380, "SHR PA", "Highly experimental Rust PA management for Raspberry Pi 5, with abstract interconnected signal paths.", "".join(parts)))
 
-parts = [text(40, 48, "ONE SYNCHRONOUS AUDIO PATH", 21, TEAL),
-         text(40, 78, "Planned architecture · processing and channel roles remain to be implemented", 16, MUTED)]
-labels = [(40, "USB / ALSA", "Capture"), (275, "DSP graph", "Routing + LR24 + EQ"), (510, "Output stages", "Delay + limiting"), (745, "USB / ALSA", "Playback")]
-for x, heading, detail in labels:
-    parts.append(f'<rect x="{x}" y="115" width="205" height="98" rx="12" fill="{PANEL}" stroke="#334956"/>')
-    parts += [text(x + 18, 153, heading, 21), text(x + 18, 184, detail, 16, MUTED)]
-    if x < 745:
-        parts.append(f'<path d="M {x+207} 164 h 23 m -7 -5 l 7 5 l -7 5" stroke="{TEAL}" stroke-width="2" fill="none"/>')
-parts += [f'<path d="M 377 213 V 253 H 242 V 277 M 377 253 H 675 V 277" stroke="{TEAL}" stroke-width="2" fill="none" stroke-dasharray="5 5"/>']
-for x, heading, detail in [(40, "Measurement workers", "RTA / EQ fitting / feedback detection"), (505, "Control + terminal UI", "Prepared edits / status / optional MIDI")]:
-    parts.append(f'<rect x="{x}" y="277" width="445" height="90" rx="12" fill="{PANEL}"/>')
-    parts += [text(x+20, 312, heading, 21), text(x+20, 343, detail, 17, MUTED)]
-parts += [text(40, 408, "Analysis and control work stay outside the audio deadline.", 18, MUTED)]
-(OUT / "signal-flow.svg").write_text(svg(990, 440, "Planned SHR PA processing architecture", "ALSA capture, synchronous DSP graph and output processing, then ALSA playback. Separate analysis and terminal control work.", "".join(parts)))
+parts = [text(40, 48, "DRIVERACK FUNCTIONS / 2 INPUTS × 6 OUTPUTS", 23, TEAL),
+         text(40, 80, "Planned processing · LR24 first · all audio implementation pending", 17, MUTED)]
+# The processing order and six labelled outputs are intentional; this is a plan.
+for x, heading, detail in [(40, "INPUT L / R", "Program or test signal"),
+                           (315, "INPUT PROCESSING", "GEQ → room EQ → feedback"),
+                           (710, "DYNAMICS + DELAY", "Bass synth → comp → pre-delay")]:
+    width = 240 if x == 40 else 360
+    parts.append(f'<rect x="{x}" y="112" width="{width}" height="95" rx="12" fill="{PANEL}" stroke="#334956"/>')
+    parts += [text(x + 16, 148, heading, 19), text(x + 16, 181, detail, 17, MUTED)]
+    if x < 710:
+        start = x + width
+        parts.append(f'<path d="M {start} 158 h 33 m -7 -5 l 7 5 l -7 5" stroke="{TEAL}" stroke-width="2" fill="none"/>')
+parts += [f'<path d="M 890 207 V 235 H 150 V 315" stroke="{TEAL}" stroke-width="2" fill="none"/>',
+          f'<rect x="40" y="315" width="220" height="98" rx="12" fill="{PANEL}"/>',
+          text(59, 354, "CROSSOVER", 22), text(59, 385, "Band gain + polarity", 17, MUTED)]
+for index, band in enumerate(["HIGH", "MID", "LOW"]):
+    y = 270 + index * 75
+    parts.append(f'<path d="M 260 364 H 292 V {y+29} H 325" stroke="{TEAL}" stroke-width="2" fill="none"/>')
+    parts.append(f'<rect x="325" y="{y}" width="745" height="58" rx="10" fill="{PANEL}"/>')
+    parts += [text(342, y+36, f"{band} L/R", 20, TEAL),
+              text(478, y+36, "PEQ → limiter → delay → mutes → meters", 20)]
+parts += [text(40, 525, "SETUP MIC → RTA / LEVEL ASSIST / AUTOEQ", 19, AMBER),
+          text(40, 556, "One microphone; ordinary sequential measurements. Eight-point positional RTA is future work.", 17, MUTED),
+          text(40, 600, "Control and analysis run outside the synchronous audio path.", 17, MUTED)]
+(OUT / "signal-flow.svg").write_text(svg(1120, 630, "Planned SHR PA 2-input 6-output architecture", "Stereo program input through EQ, feedback suppression, bass synthesis, compression, pre-delay and crossover. Three output pairs each have EQ, limiter, delay, mutes and meters. A separate setup microphone feeds measurement.", "".join(parts)))
 
 binary = Path(sys.argv[1] if len(sys.argv) > 1 else ROOT / "target/release/shr-pa").resolve()
 lines = subprocess.check_output([binary, "--snapshot"], text=True).splitlines()
