@@ -98,7 +98,10 @@ fn interactive() -> io::Result<()> {
     ] {
         signal_hook::flag::register(signal, stop.clone())?;
     }
+    // Initialize the event source before painting: a resize immediately after
+    // the first frame must not arrive before SIGWINCH handling is installed.
     let _guard = TerminalGuard::enter()?;
+    event::poll(Duration::ZERO)?;
     let mut page = Page::Home;
     let mut dirty = true;
     while !stop.load(Ordering::Relaxed) {

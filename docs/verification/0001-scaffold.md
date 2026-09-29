@@ -24,3 +24,8 @@ in this change.
 
 This record does not claim physical touch, live audio, speaker protection or
 low-buffer acceptance. GitHub CI results are reported by the repository badge.
+
+A subsequent CI run exposed a startup resize race: SIGWINCH could arrive after
+first paint but before the terminal event source was initialized. Event handling
+now initializes before the first frame. The full normal local suite passed again,
+plus ten immediate-resize repetitions. The existing resize case remains in CI.
