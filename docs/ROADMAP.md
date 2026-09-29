@@ -67,6 +67,8 @@ must work independently of terminal, ALSA and persistence code.
 | Gain / polarity / mute | Sample ramps, bounded finite parameters | Step transitions, silence, clipping/headroom behavior |
 | Mono sum | Explicit input weights; averaging and unity sum are distinct | Correlated and uncorrelated signals; documented gain |
 | Parametric EQ | Biquads; coefficients computed outside render | Reference responses, stability, extreme legal settings |
+| Graphic EQ | Fixed frequency bands using the verified EQ core | Band and combined response; headroom under multiple boosts |
+| Compressor | Linked or independent envelope; threshold, ratio, knee, attack/release | Static transfer curve, transients, pumping and channel tracking |
 | LR24 | Two cascaded second-order Butterworth sections per branch | −6 dB at crossover, complementary summed magnitude and phase, impulse response |
 | Delay | Preallocated circular storage; integer delay first | Exact sample alignment, wraparound, maximum memory; click-free changes |
 | Limiter | Peak envelope, configurable attack/release and channel linking | Overshoot, bursts, recovery, sustained limiting and channel balance |
