@@ -15,7 +15,8 @@ LR24 full-range/two-way/phase-compensated three-way layouts, mono selection/bass
 summing, independent BW6–48/LR12–48 crossover edges, 31-band GEQ, bell/shelf PEQ,
 stereo-linked compression, delays,
 gain/polarity, ramped mutes, linked peak limiters and meters.
-Six-channel offline WAV rendering works without an audio interface. Direct ALSA
+Six-channel offline WAV rendering works without an audio interface, including
+seeded white and pink noise sources. Direct ALSA
 runs selected logical outputs on the physical channels available today, with no
 implicit stereo mixdown.
 

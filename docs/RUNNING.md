@@ -218,6 +218,7 @@ Changing only the version number is not a migration.
 ./target/release/shr-pa render "$SESSION/preset.json" impulse "$SESSION/impulse.wav" 1 --unmute
 ./target/release/shr-pa render "$SESSION/preset.json" sweep "$SESSION/sweep.wav" 5 --unmute
 ./target/release/shr-pa render "$SESSION/preset.json" noise "$SESSION/noise.wav" 5 --unmute
+./target/release/shr-pa render "$SESSION/preset.json" pink "$SESSION/pink.wav" 5 --unmute
 ./target/release/shr-pa render "$SESSION/preset.json" sine:1000 "$SESSION/tone.wav" 1 --unmute
 ./target/release/shr-pa render "$SESSION/preset.json" stereo-input.wav "$SESSION/processed.wav" 60 --unmute
 ```
@@ -228,9 +229,14 @@ preset rate; PCM integer and float input are supported. Rendering stops at EOF
 or the requested duration; append silence to the input to retain a complete
 filter/delay tail. Input and output files must differ. There is no resampling.
 
-Generators are deterministic and peak at 0.1 (−20 dBFS) before processing. The
-impulse has a 10 ms lead-in to clear the startup ramp. Sweep is logarithmic from
-20 Hz to 0.4 × sample rate. Noise is seeded white noise. Pink noise is pending.
+Generators are deterministic, with a 0.1 (−20 dBFS) peak bound before processing;
+noise RMS and observed peaks are lower. The impulse has a 10 ms lead-in to clear
+the startup ramp. Sweep is logarithmic from 20 Hz to 0.4 × sample rate. `noise` is
+seeded white noise; `pink` approximates equal power per octave using 16 octave
+rows plus white noise. Both feed identical L/R samples. Pink noise has spectral
+ripple and finite-record mean variation; it is not calibrated measurement noise.
+See the [generator contract](DSP.md#test-generators-m03). Generator level is fixed;
+adjustable level and runtime switching back to capture remain pending.
 Timing reports measure just `Engine::render`, excluding WAV I/O and generation.
 
 ## Software-null streaming (no hardware)
@@ -279,7 +285,7 @@ read the actual negotiated values. Smaller settings are not qualified.
 
 Live starts muted. With `--ui`, use the controls above; Tab opens modules. It displays actual
 logical peaks and physical mappings. Without `--ui`, use `--unmute` explicitly
-for a bounded run. Optional `--signal=sine:1000`, `--signal=noise`, etc. replaces
+for a bounded run. Optional `--signal=sine:1000`, `--signal=noise`, `--signal=pink`, etc. replaces
 program input before processing and ends with the session; it is never recalled
 from a preset. Without that option, the mapped physical capture feeds the DSP.
 

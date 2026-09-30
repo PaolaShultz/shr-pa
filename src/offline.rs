@@ -9,6 +9,7 @@ pub enum Signal {
     Sine(f64),
     Sweep,
     Noise,
+    Pink,
 }
 impl Signal {
     pub fn parse(s: &str) -> Result<Self> {
@@ -17,6 +18,7 @@ impl Signal {
             "impulse" => Self::Impulse,
             "sweep" => Self::Sweep,
             "noise" => Self::Noise,
+            "pink" => Self::Pink,
             _ if s.starts_with("sine:") => {
                 let hz: f64 = s[5..].parse()?;
                 if !hz.is_finite() || hz <= 0. {
@@ -24,7 +26,11 @@ impl Signal {
                 }
                 Self::Sine(hz)
             }
-            _ => return Err("source: silence, impulse, sweep, noise, sine:HZ or WAV path".into()),
+            _ => {
+                return Err(
+                    "source: silence, impulse, sweep, noise, pink, sine:HZ or WAV path".into(),
+                );
+            }
         })
     }
 }
@@ -34,6 +40,39 @@ pub struct Generator {
     frame: u64,
     total: u64,
     random: u64,
+    pink: Pink,
+}
+
+// Voss-McCartney octave rows plus a full-rate white component. Integer sums
+// avoid accumulated rounding drift. Each of the 17 terms is in [-2^23, 2^23).
+// See docs/DSP.md for the approximation, normalization and source attribution.
+#[derive(Default)]
+struct Pink {
+    rows: [i64; 16],
+    sum: i64,
+    counter: u16,
+}
+fn random_next(state: &mut u64) -> u64 {
+    *state ^= *state << 13;
+    *state ^= *state >> 7;
+    *state ^= *state << 17;
+    *state
+}
+fn pink_white(state: &mut u64) -> i64 {
+    (random_next(state) >> 40) as i64 - (1 << 23)
+}
+impl Pink {
+    fn next(&mut self, random: &mut u64) -> f64 {
+        self.counter = self.counter.wrapping_add(1);
+        let row = self.counter.trailing_zeros() as usize;
+        // At wrap there is no row 16. Retain all rows for this sample.
+        if row < self.rows.len() {
+            let next = pink_white(random);
+            self.sum += next - self.rows[row];
+            self.rows[row] = next;
+        }
+        (self.sum + pink_white(random)) as f64 * (0.1 / (17. * (1_u64 << 23) as f64))
+    }
 }
 impl Generator {
     pub fn new(signal: Signal, rate: u32, total: u64) -> Result<Self> {
@@ -43,13 +82,21 @@ impl Generator {
         {
             return Err("invalid generator rate, duration or frequency".into());
         }
-        Ok(Self {
+        let mut generator = Self {
             signal,
             rate,
             frame: 0,
             total,
             random: 0x123456789abcdef,
-        })
+            pink: Pink::default(),
+        };
+        if matches!(signal, Signal::Pink) {
+            for row in &mut generator.pink.rows {
+                *row = pink_white(&mut generator.random);
+                generator.pink.sum += *row;
+            }
+        }
+        Ok(generator)
     }
     pub fn fill(&mut self, buffer: &mut [[f32; 2]]) {
         for frame in buffer {
@@ -71,11 +118,9 @@ impl Generator {
                     0.1 * (2. * PI * 20. * (k * t).exp_m1() / k).sin()
                 }
                 Signal::Noise => {
-                    self.random ^= self.random << 13;
-                    self.random ^= self.random >> 7;
-                    self.random ^= self.random << 17;
-                    0.1 * (2. * (self.random as f64 / u64::MAX as f64) - 1.)
+                    0.1 * (2. * (random_next(&mut self.random) as f64 / u64::MAX as f64) - 1.)
                 }
+                Signal::Pink => self.pink.next(&mut self.random),
             };
             *frame = [x as f32; 2];
             self.frame += 1;

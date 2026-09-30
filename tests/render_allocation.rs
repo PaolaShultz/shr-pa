@@ -150,3 +150,26 @@ fn prepared_handoff_full_processing_transitions_recall_and_fault_never_allocate(
     assert_eq!(count, 0);
     assert_eq!(out, [[0.; 6]; 128]);
 }
+
+#[test]
+fn pink_generation_and_six_output_processing_never_allocate_or_free() {
+    use shr_pa::{
+        config::Config,
+        dsp::Engine,
+        offline::{Generator, Signal},
+    };
+    let mut g = Generator::new(Signal::Pink, 48000, 131072).unwrap();
+    let mut engine = Engine::new(Config::default()).unwrap();
+    let mut input = [[0.; 2]; 128];
+    let mut output = [[0.; 6]; 128];
+    COUNT.with(|c| c.set(Some(0)));
+    engine.set_mutes([false; 6]);
+    for _ in 0..1024 {
+        g.fill(&mut input);
+        engine.render(&input, &mut output).unwrap();
+    }
+    let count = COUNT.with(|c| c.replace(None).unwrap());
+    assert_eq!(count, 0);
+    assert!(!engine.faulted());
+    assert!(output.iter().any(|frame| frame[4] != 0.));
+}

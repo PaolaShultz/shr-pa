@@ -107,6 +107,10 @@ fully enabled path, not only a minimal LR24 configuration.
 
 ## P4 — measurement input, RTA and test signals
 
+Deterministic white and pink sources now work in offline renders and explicit live
+sessions; see [M03 evidence](verification/0008-pink-noise.md). Adjustable generator
+level, runtime source switching and the measurement/analysis path remain pending.
+
 Covers M01–M03, H03. Capture one setup microphone on the same hardware clock;
 keep it isolated from PA playback. Add calibration, signal level and clipping checks.
 Feed an analysis worker through a bounded tap. Drops are visible and invalidate

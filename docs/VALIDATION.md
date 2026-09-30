@@ -46,6 +46,10 @@ v2/envelope migration, retained history under mute/reconfigure and allocation-fr
 edge edits. The null PTY test edits both edges on all pairs, rejects split shortcuts
 in independent mode and recovers the saved crossover after restart. See
 [crossover verification](verification/0006-crossover.md).
+M03 pink generation adds bounded stereo/block/rate checks, an independent
+windowed spectral regression with a white-noise control, six-output WAV comparison,
+explicit muted/unmuted software-null runs and generation allocation counting.
+These short production tests run by default; they open no physical device.
 Add analysis isolation and automatic device reconnection regressions with those
 future features.
 

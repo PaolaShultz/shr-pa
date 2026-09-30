@@ -354,3 +354,46 @@ They use the same one-slot handoff, latest-desired retry, 20 ms transitions,
 recall mute sequence and fault precedence as existing controls. No library or
 history object crosses into render. Unchanged filters, delays and dynamics keep
 their existing DSP state. Metadata-only changes require no audio transaction.
+
+## Test generators (M03)
+
+`pink` is available to `render` and explicit `live --signal=pink`. Like the other
+sources it replaces both program inputs before engine input metering, gain, EQ,
+compression and crossover. All six output chains, limiters and mutes remain in
+force. It uses identical L/R samples, so correlated mono-bass averaging preserves
+its level. Generation is separate from the engine render timer.
+
+The implementation uses the Voss-McCartney method described in the
+[original music-dsp discussion collected by Robin Whittle](https://www.firstpr.com.au/dsp/pink-noise/).
+Sixteen held random rows update at octave-spaced intervals; a fresh white term
+fills the upper spectrum. A wrapping 16-bit counter selects at most one row per
+sample using trailing zeros; at zero it retains all rows. Rows start seeded,
+without a zero-state warmup. Each random value uses the upper 24 bits of the
+existing fixed-seed xorshift generator, centered at zero. Integer accumulation
+is exact and bounded. The sum of 17 terms is scaled by `0.1 / (17 * 2^23)`,
+giving a 0.1 peak bound before f32 rounding without clipping or normalization
+based on a future signal peak. RMS is lower and is not calibrated to −20 dBFS.
+The existing white source retains its sequence and level.
+
+Storage is fixed; each sample needs at most two PRNG updates and one row update.
+No allocation, filtering coefficient design, locks or I/O occurs in generation.
+The sequence is independent of block size and sample rate; its spectrum scales
+with rate. It approximates pink noise, with ripple and finite low-frequency
+coverage. Finite sequences can have nonzero mean; no DC blocker is included.
+This is a development excitation source, not a precision noise calibration.
+
+The normal spectral regression compares nine octave powers over eight disjoint
+32,768-frame Hann windows using independent Goertzel probes. Its octave edges
+span rate/2048 through rate/4 (23.4375–12,000 Hz at 48 kHz); their measured spread
+must be below 3 dB. A white control must rise 21–27 dB across the same eight-octave
+separation. This is a bounded statistical check, not a per-frequency ripple or
+full-audible-band guarantee at every sample rate. Block/rate tests cover
+8/44.1/48/96/192 kHz and multiple counter wraps.
+
+Sources are runtime-only and require an explicit command. Session shutdown uses
+the existing mute ramp; a fault terminates streaming and requires restart. No
+preset or working recovery starts a source. `Generator::fill` itself continues
+when called; the renderer/transport owns session duration and cleanup. Adjustable
+source level, runtime on/off with capture restoration, setup mic, RTA and automatic
+measurement remain pending. M03 is partial; no proprietary PA2 noise equivalence
+or new physical measurements are claimed.

@@ -15,7 +15,7 @@ and the [release verification](verification/0007-0.2-alpha.md).
   speaker PEQs per output pair, and stereo-linked soft/hard-knee compression.
 - Stereo-linked sample peak limiters, peak/clip/reduction meters and latched
   numerical-fault silence. See [precise behavior and limits](DSP.md).
-- Seeded white noise, sine, impulse and log sweep; stereo WAV input and six-channel
+- Seeded white and pink noise, sine, impulse and log sweep; stereo WAV input and six-channel
   float WAV output, independent of physical channel counts.
 - 75 named user slots, six immutable layout templates, selection before recall,
   explicit overwrite/copy, atomic working-edit recovery and retained EQ restore points.
@@ -24,6 +24,10 @@ and the [release verification](verification/0007-0.2-alpha.md).
   original layout LR24 remains default with its three-way phase compensation.
 - Validated v3 JSON presets and v2 library envelopes with explicit v1/v2 migration. Terminal edits
   and computed preview; compact keyboard/mouse navigation and terminal cleanup.
+
+Pink generation (M03) has [offline and software-null evidence](verification/0008-pink-noise.md).
+It uses a fixed peak bound; adjustable generator level and runtime source switching
+remain pending alongside measurement workflows.
 
 ## Implemented live transport
 

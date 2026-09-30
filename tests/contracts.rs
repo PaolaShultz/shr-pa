@@ -75,9 +75,11 @@ fn offline_wav_is_six_channel_deterministic_and_can_read_stereo_pcm() {
     let c = Config::default();
     let a = dir.join("a.wav");
     let b = dir.join("b.wav");
-    shr_pa::offline::render(c, "noise", &a, 0.03).unwrap();
-    shr_pa::offline::render(c, "noise", &b, 0.03).unwrap();
-    assert_eq!(std::fs::read(&a).unwrap(), std::fs::read(&b).unwrap());
+    for source in ["noise", "pink"] {
+        shr_pa::offline::render(c, source, &a, 0.03).unwrap();
+        shr_pa::offline::render(c, source, &b, 0.03).unwrap();
+        assert_eq!(std::fs::read(&a).unwrap(), std::fs::read(&b).unwrap());
+    }
     let r = hound::WavReader::open(&a).unwrap();
     assert_eq!(r.spec().channels, 6);
     assert_eq!(r.duration(), 1440);

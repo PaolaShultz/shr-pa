@@ -97,3 +97,67 @@ fn preset_render_commands_and_invalid_mapping_fail_before_hardware_open() {
     assert!(link.is_symlink());
     std::fs::remove_dir_all(dir).unwrap();
 }
+
+#[test]
+fn pink_cli_render_and_explicit_null_streaming_preserve_startup_mutes() {
+    let dir = std::env::temp_dir().join(format!("shr-pa-pink-cli-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let preset = dir.join("preset.json");
+    let wav = dir.join("pink.wav");
+    let p = preset.to_str().unwrap();
+    assert!(run(&["init", p]).status.success());
+    assert!(
+        run(&[
+            "render",
+            p,
+            "pink",
+            wav.to_str().unwrap(),
+            "0.031",
+            "--unmute"
+        ])
+        .status
+        .success()
+    );
+    let mut reader = hound::WavReader::open(&wav).unwrap();
+    assert_eq!(reader.duration(), 1488);
+    assert_eq!(reader.spec().channels, 6);
+    // Compare the CLI artifact with direct generator -> full engine processing,
+    // including a short last block, EQ, crossover, startup ramp and all outputs.
+    let c = shr_pa::config::Config::load(&preset).unwrap();
+    let mut engine = shr_pa::dsp::Engine::new(c).unwrap();
+    engine.set_mutes([false; 6]);
+    let mut g =
+        shr_pa::offline::Generator::new(shr_pa::offline::Signal::Pink, 48000, 1488).unwrap();
+    let mut input = vec![[0.; 2]; 1488];
+    g.fill(&mut input);
+    let mut expected = vec![[0.; 6]; 1488];
+    for (input, output) in input.chunks(128).zip(expected.chunks_mut(128)) {
+        engine.render(input, output).unwrap();
+    }
+    let actual: Vec<_> = reader.samples::<f32>().map(Result::unwrap).collect();
+    assert_eq!(actual, expected.into_iter().flatten().collect::<Vec<_>>());
+    for unmute in [false, true] {
+        let mut args = vec![
+            "live",
+            p,
+            "null",
+            "null",
+            "2",
+            "2",
+            "0,1",
+            "0,1,-,-,-,-",
+            "0.03",
+            "--signal=pink",
+        ];
+        if unmute {
+            args.push("--unmute");
+        }
+        let output = run(&args);
+        assert!(output.status.success(), "{:?}", output);
+        let report = String::from_utf8(output.stdout).unwrap();
+        assert!(report.contains("fault: None"), "{report}");
+        let silent = report.contains("output_peaks: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]");
+        assert_eq!(silent, !unmute, "{report}");
+    }
+    std::fs::remove_dir_all(dir).unwrap();
+}

@@ -1,5 +1,13 @@
 # Release notes
 
+## Unreleased
+
+- M03: deterministic, bounded pink noise for six-output offline renders and
+  explicitly requested live sessions (`pink` / `--signal=pink`). Spectral and
+  software-null checks are recorded in [0008](docs/verification/0008-pink-noise.md).
+  Generator level and runtime source switching remain pending. No application
+  or persistence version change.
+
 ## 0.2.0-alpha.1 — “0.2 alpha” — 2026-09-30
 
 Experimental fixed 2-input × 6-output PA processing for Linux and Raspberry Pi 5.
