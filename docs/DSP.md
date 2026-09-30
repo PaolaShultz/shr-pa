@@ -381,14 +381,34 @@ is −20 dBFS and preserves previous samples exactly. A constant
 `10^((DBFS + 20)/20)` scales the existing source in f64 before conversion to f32;
 the source bound is `10^(DBFS/20)` subject to f32 rounding. This is neither an RMS
 calibration nor a promised peak of a finite noise record. The scale is prepared
-once, with one multiplication per sample and no change to sequence or stereo pairing.
+on the controller, with one multiplication per sample and no change to sequence or stereo pairing.
 
 Level belongs to the invocation, outside Config/library/working state. It is
 selected before rendering/streaming and requires a generated source; WAV input
 and capture-only live sessions reject it before output creation or device open.
 Input gain, EQ, dynamics and crossover still follow this insertion point, so
 processed output levels can differ. The output limiter and mute behavior remain
-in force even at a 0 dBFS source setting. In-session level editing is pending.
+in force even at a 0 dBFS source setting.
+
+Live `(`/`)` edits the desired source level in 1 dB steps clamped to the same
+bounds. `GeneratorControl` publishes only a prepared f64 gain in one atomic u64;
+zero bits mean no edit. Each block reads the latest target independently of
+processing transactions. Repeated publications coalesce without a queue or retry;
+no source-on intent crosses this control. Capture-only sessions cannot enable a
+source through a level edit. Preset recall leaves the runtime level untouched.
+
+A changed target ramps linear amplitude from the current gain over
+`max(1, floor(sample_rate / 200))` samples (240 at 48 kHz). The first sample
+advances one step; the last lands exactly on target. A new target restarts this
+5 ms ramp from its current value; an unchanged target does not restart it.
+During a downward edit, the previous bound can persist until the ramp settles.
+The ramp never exceeds the larger of the starting and requested gains, apart
+from floating-point rounding. Source phase, PRNG and pink row history continue;
+identical edit sample positions give identical results across block partitions.
+The header labels the desired target, not an acknowledgement of settled audio.
+Processing pending/busy counters exclude this independent ramp. Mutes and faults
+retain precedence; shutdown stops servicing edits and finishes the existing mute
+cleanup. There is no claim of measured analog transition quality.
 
 Storage is fixed; each sample needs at most two PRNG updates and one row update.
 No allocation, filtering coefficient design, locks or I/O occurs in generation.
@@ -408,7 +428,7 @@ full-audible-band guarantee at every sample rate. Block/rate tests cover
 Sources are runtime-only and require an explicit command. Session shutdown uses
 the existing mute ramp; a fault terminates streaming and requires restart. No
 preset or working recovery starts a source. `Generator::fill` itself continues
-when called; the renderer/transport owns session duration and cleanup. In-session
-level edits, runtime on/off with capture restoration, setup mic, RTA and automatic
+when called; the renderer/transport owns session duration and cleanup. Runtime
+on/off with capture restoration, setup mic, RTA and automatic
 measurement remain pending. M03 is partial; no proprietary PA2 noise equivalence
 or new physical measurements are claimed.

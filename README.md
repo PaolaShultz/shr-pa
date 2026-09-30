@@ -18,7 +18,8 @@ gain/polarity, ramped mutes, linked peak limiters and meters.
 Six-channel offline WAV rendering works without an audio interface, including
 seeded white and pink noise sources with explicit −60…0 dBFS generator levels. Direct ALSA
 runs selected logical outputs on the physical channels available today, with no
-implicit stereo mixdown.
+implicit stereo mixdown. Explicit live generators also support `(`/`)` level edits
+with a 5 ms ramp.
 
 The 2026-09-29 AudioBox USB 96 trials exercised the stereo transport path. **UMC1820 is a future
 target, not a development prerequisite.** Analog latency and speaker protection

@@ -37,26 +37,41 @@ impl Signal {
 /// Runtime-only source peak bound in dBFS, before program processing.
 /// Noise RMS and the peak of a finite noise record are lower than this bound.
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct GeneratorLevel(f64);
+pub struct GeneratorLevel {
+    dbfs: f64,
+    scale: f64,
+}
 impl GeneratorLevel {
     pub fn new(dbfs: f64) -> Result<Self> {
         if !dbfs.is_finite() || !(-60. ..=0.).contains(&dbfs) {
             return Err("generator level must be finite and -60..0 dBFS".into());
         }
-        Ok(Self(dbfs))
+        Ok(Self {
+            dbfs,
+            scale: 10_f64.powf((dbfs + 20.) / 20.),
+        })
+    }
+    pub(crate) fn scale(self) -> f64 {
+        self.scale
     }
     pub fn dbfs(self) -> f64 {
-        self.0
+        self.dbfs
     }
 }
 impl Default for GeneratorLevel {
     fn default() -> Self {
-        Self(-20.)
+        Self {
+            dbfs: -20.,
+            scale: 1.,
+        }
     }
 }
 pub struct Generator {
     signal: Signal,
     level_scale: f64,
+    level_target: f64,
+    level_step: f64,
+    level_remaining: u32,
     rate: u32,
     frame: u64,
     total: u64,
@@ -114,7 +129,10 @@ impl Generator {
         let mut generator = Self {
             signal,
             // Preserve the existing -20 dBFS samples exactly at the default.
-            level_scale: 10_f64.powf((level.dbfs() + 20.) / 20.),
+            level_scale: level.scale(),
+            level_target: level.scale(),
+            level_step: 0.,
+            level_remaining: 0,
             rate,
             frame: 0,
             total,
@@ -128,6 +146,14 @@ impl Generator {
             }
         }
         Ok(generator)
+    }
+    /// Retarget from the current gain; sequence and source history are untouched.
+    pub(crate) fn ramp_scale(&mut self, scale: f64) {
+        if scale != self.level_target {
+            self.level_target = scale;
+            self.level_remaining = (self.rate / 200).max(1);
+            self.level_step = (scale - self.level_scale) / self.level_remaining as f64;
+        }
     }
     pub fn fill(&mut self, buffer: &mut [[f32; 2]]) {
         for frame in buffer {
@@ -153,6 +179,14 @@ impl Generator {
                 }
                 Signal::Pink => self.pink.next(&mut self.random),
             };
+            if self.level_remaining > 0 {
+                self.level_remaining -= 1;
+                self.level_scale = if self.level_remaining == 0 {
+                    self.level_target
+                } else {
+                    self.level_scale + self.level_step
+                };
+            }
             *frame = [(x * self.level_scale) as f32; 2];
             self.frame += 1;
         }

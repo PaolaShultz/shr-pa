@@ -118,6 +118,7 @@ touchscreen integration remains unverified.
 | `1`…`6` | Toggle each logical output mute |
 | `m` / `u` | Mute / unmute all |
 | `r` | Run an offline 1 kHz, −20 dBFS preview; show computed peaks |
+| `(` / `)` (live only) | Generator level down/up 1 dB, clamped to −60…0 dBFS; requires `--signal` |
 | `s` / `l` | Save (confirm overwrite) / load `preset.json` |
 
 The controls above also work live, except `r` (offline preview only). During live
@@ -246,8 +247,13 @@ The option applies only to generated sources; WAV input and live capture without
 `--signal` reject it. It sets a peak bound before input gain/EQ/dynamics, not noise
 RMS or calibrated physical level. Sine/impulse peaks use the same dBFS convention.
 Source and level are session-only; saving or recovering processing never restores
-them. Choose the level when starting the command; in-session level changes and
-runtime switching back to capture remain pending. See the
+them. During `live --ui`, `(` lowers and `)` raises the source level by 1 dB,
+clamped to −60…0. The meter header shows the desired target; each edit returns
+to that view. A 5 ms linear gain ramp starts at the next serviced block boundary,
+retargeting from the current gain during rapid edits. Processing pending/busy
+indicators describe processing transactions, not this independent ramp. Capture-only
+sessions reject these keys; recalls leave the runtime target unchanged. Source
+switching/off with capture restoration remains pending. See the
 [generator contract](DSP.md#test-generators-m03).
 Timing reports measure just `Engine::render`, excluding WAV I/O and generation.
 

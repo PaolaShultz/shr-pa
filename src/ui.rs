@@ -833,6 +833,9 @@ pub fn live(
     let _guard = Guard;
     execute!(io::stdout(), EnterAlternateScreen, Hide)?;
     let physical_outputs = options.map.outputs;
+    let mut generator_level = options
+        .signal
+        .map(|_| options.generator_level.unwrap_or_default());
     let mut editor = Editor::new()?;
     editor.config = config;
     editor.saved = config;
@@ -914,9 +917,20 @@ pub fn live(
                     } else {
                         let mask = shared.mutes.load(Ordering::Relaxed);
                         let mut rows = vec![
-                            format!(
-                                "SHR PA / LIVE 2 x 6 {}",
-                                if editor.modified() { "*" } else { "" }
+                            generator_level.map_or_else(
+                                || {
+                                    format!(
+                                        "SHR PA / LIVE 2 x 6 {}",
+                                        if editor.modified() { "*" } else { "" }
+                                    )
+                                },
+                                |level| {
+                                    format!(
+                                        "Gen target {:.1} dBFS (:down ):up{}",
+                                        level.dbfs(),
+                                        if editor.modified() { " *" } else { "" }
+                                    )
+                                },
                             ),
                             "1..6: mute toggle  m:all mute  u:unmute".into(),
                         ];
@@ -1014,6 +1028,21 @@ pub fn live(
                                 shared.mutes.store(0, Ordering::Relaxed);
                             } else {
                                 editor.message = "Unmute deferred: wait, then press u".into();
+                            }
+                        }
+                        KeyCode::Char(c @ ('(' | ')')) => {
+                            if shared.fault.load(Ordering::Relaxed) {
+                                editor.message = "Fault: restart required".into();
+                            } else if let Some(level) = &mut generator_level {
+                                *level = crate::offline::GeneratorLevel::new(
+                                    (level.dbfs() + if c == ')' { 1. } else { -1. })
+                                        .clamp(-60., 0.),
+                                )
+                                .expect("clamped generator level");
+                                shared.generator.request(*level);
+                                modules = false;
+                            } else {
+                                editor.message = "Level requires --signal".into();
                             }
                         }
                         KeyCode::Tab => modules = !modules,

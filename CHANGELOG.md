@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- M03: live `(`/`)` generator level edits with a 5 ms gain ramp, preserving
+  source sequencing and runtime-only ownership. See [0010](docs/verification/0010-runtime-generator-level.md).
 - M03: deterministic, bounded pink noise for six-output offline renders and
   explicitly requested live sessions (`pink` / `--signal=pink`). Spectral and
   software-null checks are recorded in [0008](docs/verification/0008-pink-noise.md).

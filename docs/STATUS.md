@@ -28,7 +28,9 @@ and the [release verification](verification/0007-0.2-alpha.md).
 Pink generation (M03) has [offline and software-null evidence](verification/0008-pink-noise.md).
 The session-start `--level=DBFS` option now sets its peak bound (−60…0 dBFS,
 default −20); see [level evidence](verification/0009-generator-level.md).
-In-session level edits, runtime source switching and measurement workflows remain pending.
+Live `(`/`)` now edits the generator level with a 5 ms ramp; see
+[runtime level evidence](verification/0010-runtime-generator-level.md).
+Runtime source switching and measurement workflows remain pending.
 
 ## Implemented live transport
 

@@ -91,6 +91,7 @@ impl Mapping {
 /// Lock-free control and approximate telemetry; no audio is queued through it.
 pub struct Shared {
     pub controls: crate::control::Handoff,
+    pub generator: crate::control::GeneratorControl,
     pub transitioning: AtomicBool,
     pub actual_block: AtomicU32,
     pub reduction: [AtomicU32; 4],
@@ -106,6 +107,7 @@ impl Default for Shared {
     fn default() -> Self {
         Self {
             controls: crate::control::Handoff::default(),
+            generator: crate::control::GeneratorControl::default(),
             transitioning: AtomicBool::new(false),
             actual_block: AtomicU32::new(0),
             reduction: std::array::from_fn(|_| AtomicU32::new(0)),
@@ -422,6 +424,7 @@ pub fn run(c: Config, options: LiveOptions<'_>, shared: &Shared) -> Result<LiveR
                 }
             }
             if let Some(g) = &mut generator {
+                shared.generator.service(g);
                 g.fill(&mut input);
             }
             let bits = shared.mutes.load(Ordering::Relaxed);

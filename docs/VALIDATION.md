@@ -52,6 +52,9 @@ explicit muted/unmuted software-null runs and generation allocation counting.
 Generator level regressions cover finite/range validation, all source shapes,
 block-independent scaling and exact default preservation, CLI rejection before
 I/O, six-output levels/limiting, startup mutes and nondefault-level allocation counting.
+Runtime level checks add ramp/retarget reference comparisons, exact block-partition
+agreement, latest-target publication, zero-allocation gain edits, software-null
+input/output level changes and 40×13 controls with capture-only rejection.
 These short production tests run by default; they open no physical device.
 Add analysis isolation and automatic device reconnection regressions with those
 future features.

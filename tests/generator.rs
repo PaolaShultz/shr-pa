@@ -1,4 +1,4 @@
-use shr_pa::offline::{Generator, Signal};
+use shr_pa::offline::{Generator, GeneratorLevel, Signal};
 
 #[test]
 fn pink_is_bounded_stereo_and_independent_of_blocks_and_rate() {
@@ -132,4 +132,156 @@ fn generator_levels_validate_and_scale_all_sources_without_changing_sequence() {
         .fill(&mut frames);
         assert_eq!(frames[1][0], 10_f64.powf(db / 20.) as f32);
     }
+}
+
+#[test]
+fn runtime_level_ramps_retarget_without_restarting_source() {
+    use shr_pa::control::GeneratorControl;
+    for rate in [8000, 44100, 48000, 192000] {
+        for signal in [
+            Signal::Noise,
+            Signal::Pink,
+            Signal::Sine(1000.),
+            Signal::Sweep,
+            Signal::Impulse,
+            Signal::Silence,
+        ] {
+            let control = GeneratorControl::default();
+            let mut g = Generator::new(signal, rate, 100000).unwrap();
+            let mut reference = Generator::new(signal, rate, 100000).unwrap();
+            let mut current = 1.;
+            // Retarget before the first ramp finishes, then settle at lower/default levels.
+            for (db, frames) in [
+                (0., rate as usize / 400),
+                (-60., rate as usize / 200 + 3),
+                (-20., rate as usize / 200 + 3),
+            ] {
+                control.request(GeneratorLevel::new(db).unwrap());
+                let target = 10_f64.powf((db + 20.) / 20.);
+                let ramp = (rate / 200).max(1) as usize;
+                let start = current;
+                for i in 0..frames {
+                    // Repeated service must not restart the ramp.
+                    control.service(&mut g);
+                    let mut actual = [[0.; 2]; 1];
+                    let mut base = [[0.; 2]; 1];
+                    g.fill(&mut actual);
+                    reference.fill(&mut base);
+                    current = if i + 1 >= ramp {
+                        target
+                    } else {
+                        start + (target - start) * (i + 1) as f64 / ramp as f64
+                    };
+                    assert_eq!(actual[0][0], actual[0][1]);
+                    assert!((actual[0][0] as f64 - base[0][0] as f64 * current).abs() < 1e-7);
+                    assert!(actual[0][0].abs() <= 1.);
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn runtime_latest_level_and_block_partition_are_deterministic() {
+    use shr_pa::control::GeneratorControl;
+    let control = GeneratorControl::default();
+    let mut whole = Generator::new(Signal::Pink, 48000, 100000).unwrap();
+    let mut split = Generator::new(Signal::Pink, 48000, 100000).unwrap();
+    for db in [-60., 0., -37.5, -20.] {
+        // Multiple publications before consumption retain the last desired value.
+        std::thread::scope(|scope| {
+            scope
+                .spawn(|| {
+                    control.request(GeneratorLevel::new(-10.).unwrap());
+                    control.request(GeneratorLevel::new(db).unwrap());
+                })
+                .join()
+                .unwrap();
+        });
+        control.service(&mut whole);
+        let mut expected = [[0.; 2]; 1024];
+        whole.fill(&mut expected);
+        let mut actual = [[0.; 2]; 1024];
+        for block in actual.chunks_mut(73) {
+            control.service(&mut split);
+            split.fill(&mut []);
+            split.fill(block);
+        }
+        assert_eq!(actual, expected);
+    }
+    // Returning to default is exact once the ramp ends, at the continued sequence.
+    let mut reference = Generator::new(Signal::Pink, 48000, 100000).unwrap();
+    reference.fill(&mut [[0.; 2]; 4096]);
+    let mut expected = [[0.; 2]; 128];
+    let mut actual = expected;
+    reference.fill(&mut expected);
+    whole.fill(&mut actual);
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn live_null_applies_runtime_level_before_meters_and_all_six_outputs() {
+    use shr_pa::{
+        config::{Config, Layout},
+        transport::{self, LiveOptions, Mapping, Shared},
+    };
+    use std::{
+        sync::atomic::Ordering,
+        time::{Duration, Instant},
+    };
+    let shared = Shared::default();
+    let c = Config {
+        layout: Layout::SixFullRange,
+        ..Config::default()
+    };
+    std::thread::scope(|scope| {
+        let worker = scope.spawn(|| {
+            transport::run(
+                c,
+                LiveOptions {
+                    capture: "null",
+                    playback: "null",
+                    map: Mapping::parse(2, 2, "0,1", "0,1,-,-,-,-").unwrap(),
+                    seconds: 86400.,
+                    signal: Some(Signal::Sine(12000.)),
+                    generator_level: Some(GeneratorLevel::new(-60.).unwrap()),
+                },
+                &shared,
+            )
+            .unwrap()
+        });
+        let deadline = Instant::now() + Duration::from_secs(8);
+        while shared.blocks.load(Ordering::Relaxed) < 10 && Instant::now() < deadline {
+            std::thread::yield_now();
+        }
+        let started = shared.blocks.load(Ordering::Relaxed) >= 10;
+        let initial = f32::from_bits(shared.input[0].load(Ordering::Relaxed));
+        let muted = shared.output.iter().all(|x| x.load(Ordering::Relaxed) == 0);
+        shared.generator.request(GeneratorLevel::new(0.).unwrap());
+        shared.mutes.store(0, Ordering::Relaxed);
+        let mut reached = false;
+        while Instant::now() < deadline {
+            reached = f32::from_bits(shared.input[0].load(Ordering::Relaxed)) > 0.99
+                && shared
+                    .output
+                    .iter()
+                    .all(|x| f32::from_bits(x.load(Ordering::Relaxed)) > 0.8);
+            if reached {
+                break;
+            }
+            std::thread::yield_now();
+        }
+        shared.stop.store(true, Ordering::Relaxed);
+        let report = worker.join().unwrap();
+        assert!(started && muted && (initial - 0.001).abs() < 1e-7);
+        assert!(reached, "runtime level did not reach every logical output");
+        assert!(report.fault.is_none());
+        assert!(
+            report
+                .output_peaks
+                .iter()
+                .all(|&x| x <= 10_f32.powf(-1. / 20.) + 1e-6)
+        );
+        assert_eq!(shared.mutes.load(Ordering::Relaxed), 63);
+    });
 }

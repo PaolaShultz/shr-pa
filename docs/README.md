@@ -24,6 +24,7 @@ software-null examples; hardware qualification is a separate activity.
 - [Evidence index](verification/README.md): all dated records and their scope.
 - [Pink generator verification](verification/0008-pink-noise.md): deterministic M03 source.
 - [Generator level verification](verification/0009-generator-level.md): session-start level selection.
+- [Runtime generator level verification](verification/0010-runtime-generator-level.md): live level edits and bounded ramps.
 - [DriveRack function map](DRIVERACK_MAP.md): complete 42-ID PA2 target inventory.
 - [Roadmap](ROADMAP.md): feature groups, remaining requirements and exit criteria.
 - [Future scope](FUTURE.md): general routing, eight-point positional RTA and the

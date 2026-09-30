@@ -110,7 +110,8 @@ fully enabled path, not only a minimal LR24 configuration.
 Deterministic white and pink sources now work in offline renders and explicit live
 sessions; see [M03 evidence](verification/0008-pink-noise.md). Session-start
 generator level selection now has [evidence](verification/0009-generator-level.md).
-In-session level edits, runtime source switching and the measurement/analysis path remain pending.
+In-session level edits now have [evidence](verification/0010-runtime-generator-level.md).
+Runtime source switching and the measurement/analysis path remain pending.
 
 Covers M01–M03, H03. Capture one setup microphone on the same hardware clock;
 keep it isolated from PA playback. Add calibration, signal level and clipping checks.

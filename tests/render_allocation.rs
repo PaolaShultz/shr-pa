@@ -168,9 +168,13 @@ fn pink_generation_and_six_output_processing_never_allocate_or_free() {
     let mut engine = Engine::new(Config::default()).unwrap();
     let mut input = [[0.; 2]; 128];
     let mut output = [[0.; 6]; 128];
+    let control = shr_pa::control::GeneratorControl::default();
+    let levels = [-60., 0., -20.].map(|db| GeneratorLevel::new(db).unwrap());
     COUNT.with(|c| c.set(Some(0)));
     engine.set_mutes([false; 6]);
-    for _ in 0..1024 {
+    for i in 0..1024 {
+        control.request(levels[i % levels.len()]);
+        control.service(&mut g);
         g.fill(&mut input);
         engine.render(&input, &mut output).unwrap();
     }

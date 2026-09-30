@@ -65,3 +65,23 @@ impl Handoff {
         self.state.store(0, Ordering::Release);
     }
 }
+
+/// Latest desired runtime generator gain. Zero means no edit, never source-on.
+/// Preparation (including exponentiation) stays on the controller. A single
+/// atomic value coalesces edits independently of processing transactions.
+#[derive(Default)]
+pub struct GeneratorControl {
+    scale: AtomicU64,
+}
+impl GeneratorControl {
+    pub fn request(&self, level: crate::offline::GeneratorLevel) {
+        self.scale.store(level.scale().to_bits(), Ordering::Release);
+    }
+    /// Called once at a block boundary, only for an explicitly started source.
+    pub fn service(&self, generator: &mut crate::offline::Generator) {
+        let bits = self.scale.load(Ordering::Acquire);
+        if bits != 0 {
+            generator.ramp_scale(f64::from_bits(bits));
+        }
+    }
+}
