@@ -30,7 +30,9 @@ The session-start `--level=DBFS` option now sets its peak bound (−60…0 dBFS,
 default −20); see [level evidence](verification/0009-generator-level.md).
 Live `(`/`)` now edits the generator level with a 5 ms ramp; see
 [runtime level evidence](verification/0010-runtime-generator-level.md).
-Runtime source switching and measurement workflows remain pending.
+Live `~` now toggles that selected source off/on with a 5 ms crossfade to/from
+mapped capture; see [capture restoration evidence](verification/0011-generator-capture-restore.md).
+Changing source type during a session and measurement workflows remain pending.
 
 ## Implemented live transport
 

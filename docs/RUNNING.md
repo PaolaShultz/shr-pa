@@ -252,8 +252,19 @@ clamped to −60…0. The meter header shows the desired target; each edit retur
 to that view. A 5 ms linear gain ramp starts at the next serviced block boundary,
 retargeting from the current gain during rapid edits. Processing pending/busy
 indicators describe processing transactions, not this independent ramp. Capture-only
-sessions reject these keys; recalls leave the runtime target unchanged. Source
-switching/off with capture restoration remains pending. See the
+sessions reject these keys; recalls leave the runtime target unchanged.
+
+In an explicit `--signal` session, `~` toggles that generator off/on. Off restores
+both mapped capture channels through a 5 ms linear crossfade at the program-input
+insertion point. **Off restores program audio; it does not mute outputs.** Use
+`m` to mute all outputs. Turning it on crossfades back to the selected source.
+The header shows the desired `Gen ON`/`Gen OFF` state and generator level target,
+including while off; that level never scales capture. `(`/`)` can edit it while
+off. Rapid toggles retarget from the current mix; phase and noise history keep
+advancing even while off. Impulses are not retriggered and sweeps are not restarted.
+Recall leaves on/off and level unchanged; restart without `--signal` has no
+source to enable. UI startup remains muted. Source-type changes during a session
+remain pending. See the
 [generator contract](DSP.md#test-generators-m03).
 Timing reports measure just `Engine::render`, excluding WAV I/O and generation.
 

@@ -836,6 +836,7 @@ pub fn live(
     let mut generator_level = options
         .signal
         .map(|_| options.generator_level.unwrap_or_default());
+    let mut generator_enabled = true;
     let mut editor = Editor::new()?;
     editor.config = config;
     editor.saved = config;
@@ -926,7 +927,8 @@ pub fn live(
                                 },
                                 |level| {
                                     format!(
-                                        "Gen target {:.1} dBFS (:down ):up{}",
+                                        "Gen {} target {:.1}dBFS () ~:toggle{}",
+                                        if generator_enabled { "ON" } else { "OFF" },
                                         level.dbfs(),
                                         if editor.modified() { " *" } else { "" }
                                     )
@@ -1028,6 +1030,17 @@ pub fn live(
                                 shared.mutes.store(0, Ordering::Relaxed);
                             } else {
                                 editor.message = "Unmute deferred: wait, then press u".into();
+                            }
+                        }
+                        KeyCode::Char('~') => {
+                            if shared.fault.load(Ordering::Relaxed) {
+                                editor.message = "Fault: restart required".into();
+                            } else if generator_level.is_some() {
+                                generator_enabled = !generator_enabled;
+                                shared.generator.request_enabled(generator_enabled);
+                                modules = false;
+                            } else {
+                                editor.message = "Toggle requires --signal".into();
                             }
                         }
                         KeyCode::Char(c @ ('(' | ')')) => {

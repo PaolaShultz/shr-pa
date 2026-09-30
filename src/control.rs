@@ -66,14 +66,29 @@ impl Handoff {
     }
 }
 
-/// Latest desired runtime generator gain. Zero means no edit, never source-on.
-/// Preparation (including exponentiation) stays on the controller. A single
-/// atomic value coalesces edits independently of processing transactions.
+/// Independent latest runtime gain and source/capture targets for an explicit source.
+/// Preparation (including exponentiation) stays on the controller. Each atomic
+/// coalesces its own edits; the two targets are not a coherent transaction.
 #[derive(Default)]
 pub struct GeneratorControl {
     scale: AtomicU64,
+    enabled: AtomicU8,
 }
 impl GeneratorControl {
+    /// Only an existing explicit live source can consume this request.
+    /// 0 retains startup behavior, 1 restores capture, 2 resumes the source.
+    pub fn request_enabled(&self, enabled: bool) {
+        self.enabled
+            .store(if enabled { 2 } else { 1 }, Ordering::Release);
+    }
+    pub fn service_live(&self, source: &mut crate::offline::LiveGenerator) {
+        self.service(&mut source.generator);
+        match self.enabled.load(Ordering::Acquire) {
+            1 => source.set_enabled(false),
+            2 => source.set_enabled(true),
+            _ => {}
+        }
+    }
     pub fn request(&self, level: crate::offline::GeneratorLevel) {
         self.scale.store(level.scale().to_bits(), Ordering::Release);
     }

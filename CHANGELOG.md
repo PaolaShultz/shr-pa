@@ -2,12 +2,15 @@
 
 ## Unreleased
 
+- M03: live `~` toggles the explicitly selected generator off/on with a 5 ms
+  crossfade to/from mapped capture. Runtime intent stays outside saved state;
+  see [0011](docs/verification/0011-generator-capture-restore.md).
 - M03: live `(`/`)` generator level edits with a 5 ms gain ramp, preserving
   source sequencing and runtime-only ownership. See [0010](docs/verification/0010-runtime-generator-level.md).
 - M03: deterministic, bounded pink noise for six-output offline renders and
   explicitly requested live sessions (`pink` / `--signal=pink`). Spectral and
   software-null checks are recorded in [0008](docs/verification/0008-pink-noise.md).
-  Runtime source switching remains pending. No application or persistence version change.
+  Changing source type during a session remains pending. No application or persistence version change.
 - M03: `--level=DBFS` selects a −60…0 dBFS generator peak bound for offline
   renders and explicit live sources; default remains −20 dBFS. The level is
   session-only and rejects WAV/capture-only use. See [0009](docs/verification/0009-generator-level.md).

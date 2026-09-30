@@ -156,15 +156,16 @@ fn pink_generation_and_six_output_processing_never_allocate_or_free() {
     use shr_pa::{
         config::Config,
         dsp::Engine,
-        offline::{Generator, GeneratorLevel, Signal},
+        offline::{Generator, GeneratorLevel, LiveGenerator, Signal},
     };
-    let mut g = Generator::with_level(
+    let g = Generator::with_level(
         Signal::Pink,
         48000,
         131072,
         GeneratorLevel::new(-7.5).unwrap(),
     )
     .unwrap();
+    let mut g = LiveGenerator::new(g);
     let mut engine = Engine::new(Config::default()).unwrap();
     let mut input = [[0.; 2]; 128];
     let mut output = [[0.; 6]; 128];
@@ -174,8 +175,10 @@ fn pink_generation_and_six_output_processing_never_allocate_or_free() {
     engine.set_mutes([false; 6]);
     for i in 0..1024 {
         control.request(levels[i % levels.len()]);
-        control.service(&mut g);
-        g.fill(&mut input);
+        control.request_enabled(i % 7 < 3);
+        control.service_live(&mut g);
+        input.fill([0.2, -0.3]);
+        g.mix_capture(&mut input);
         engine.render(&input, &mut output).unwrap();
     }
     let count = COUNT.with(|c| c.replace(None).unwrap());

@@ -41,8 +41,10 @@ precedes compression. A separate setup mic will feed analysis only; bounded
 program taps will feed feedback detection. Neither path exists in 0.2 alpha.
 The current generator replaces input before metering/processing. Its optional
 −60…0 dBFS peak level is validated and prepared on the controller. Live edits
-use a separate atomic latest-gain target and a 5 ms sample ramp; source and
-level stay outside processing transactions and persistence. Saved presets
+use a separate atomic latest-gain target and a 5 ms sample ramp. An independent
+on/off target crossfades between the selected source and mapped capture over
+5 ms; the source clock continues while off. Source, on/off and level stay outside
+processing transactions and persistence. Saved presets
 never start it. See [exact DSP semantics](DSP.md).
 
 ## Boundaries

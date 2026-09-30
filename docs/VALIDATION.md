@@ -55,6 +55,11 @@ I/O, six-output levels/limiting, startup mutes and nondefault-level allocation c
 Runtime level checks add ramp/retarget reference comparisons, exact block-partition
 agreement, latest-target publication, zero-allocation gain edits, software-null
 input/output level changes and 40×13 controls with capture-only rejection.
+Off/on regressions compare sample-by-sample capture/source crossfades, rapid
+reversals, exact stereo capture restoration, continuing source clocks and level
+edits while off. They cover block partitions, coalescing, processing-busy/fault
+precedence, software-null off/resume on all six outputs and allocation counting.
+The compact PTY check covers toggle/level/recall ownership and capture-only rejection.
 These short production tests run by default; they open no physical device.
 Add analysis isolation and automatic device reconnection regressions with those
 future features.

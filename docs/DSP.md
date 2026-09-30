@@ -391,10 +391,10 @@ processed output levels can differ. The output limiter and mute behavior remain
 in force even at a 0 dBFS source setting.
 
 Live `(`/`)` edits the desired source level in 1 dB steps clamped to the same
-bounds. `GeneratorControl` publishes only a prepared f64 gain in one atomic u64;
+bounds. `GeneratorControl` publishes a prepared f64 gain in one atomic u64;
 zero bits mean no edit. Each block reads the latest target independently of
 processing transactions. Repeated publications coalesce without a queue or retry;
-no source-on intent crosses this control. Capture-only sessions cannot enable a
+the gain target does not carry source-on intent. Capture-only sessions cannot enable a
 source through a level edit. Preset recall leaves the runtime level untouched.
 
 A changed target ramps linear amplitude from the current gain over
@@ -409,6 +409,39 @@ The header labels the desired target, not an acknowledgement of settled audio.
 Processing pending/busy counters exclude this independent ramp. Mutes and faults
 retain precedence; shutdown stops servicing edits and finishes the existing mute
 cleanup. There is no claim of measured analog transition quality.
+
+Live `~` toggles the explicitly selected generator off/on. A separate atomic u8
+holds the latest desired insertion state (unset/off/on); only an already-created
+`LiveGenerator` consumes it, once per block. Gain and insertion targets are
+independent, not a coherent transaction. Capture-only sessions cannot create a
+source through either control. Repeated requests coalesce and never delay a
+processing transaction or wait for its busy state.
+
+The insertion mix ramps linearly from its current value to 0 (capture) or 1
+(generator) over `max(1, floor(sample_rate / 200))` samples. The first sample
+advances one step and the last reaches the exact endpoint; rapid reversals
+retarget from the current mix, and identical targets do not restart it. Each
+channel receives `(1-mix)*capture + mix*generator`, before input metering and
+processing. Endpoints copy the selected source exactly. Finite samples remain
+within the larger input magnitude, subject to rounding. Generator level affects
+only the generated component; capture can exceed that bound. Nonfinite selected
+capture, including during a blend, still reaches the engine's fault checks.
+
+Capture continues to be read and mapped while the generator is on. The generator
+clock, phase, PRNG, pink history and level ramps continue while off; re-enabling
+uses the continuing sequence, not a new seed/impulse/sweep. Off restores current
+capture samples exactly after the ramp, without reopening devices or flushing
+DSP history. Existing filter/delay tails can persist. Off is not an output mute:
+use the six mutes or global mute to silence program audio. `silence` remains a
+generated source and differs from off.
+
+The compact header shows desired `Gen ON`/`Gen OFF` and the generator level target,
+not an audio acknowledgement. Processing pending/busy counters exclude both
+runtime ramps. Recall retains on/off and level; neither enters Config, library
+or recovery. UI startup stays muted; restart without `--signal` remains capture-only.
+Shutdown stops servicing both controls and runs the existing mute cleanup;
+transport faults stop both streams and numerical faults remain latched. Changing
+source type during a session is pending. No physical transient quality is claimed.
 
 Storage is fixed; each sample needs at most two PRNG updates and one row update.
 No allocation, filtering coefficient design, locks or I/O occurs in generation.

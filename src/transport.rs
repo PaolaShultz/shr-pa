@@ -370,7 +370,8 @@ pub fn run(c: Config, options: LiveOptions<'_>, shared: &Shared) -> Result<LiveR
                 options.generator_level.unwrap_or_default(),
             )
         })
-        .transpose()?;
+        .transpose()?
+        .map(crate::offline::LiveGenerator::new);
     let (capture, cn) = open(
         options.capture,
         Direction::Capture,
@@ -424,8 +425,8 @@ pub fn run(c: Config, options: LiveOptions<'_>, shared: &Shared) -> Result<LiveR
                 }
             }
             if let Some(g) = &mut generator {
-                shared.generator.service(g);
-                g.fill(&mut input);
+                shared.generator.service_live(g);
+                g.mix_capture(&mut input);
             }
             let bits = shared.mutes.load(Ordering::Relaxed);
             engine.set_mutes(std::array::from_fn(|ch| bits & (1 << ch) != 0));
@@ -491,7 +492,7 @@ pub fn run(c: Config, options: LiveOptions<'_>, shared: &Shared) -> Result<LiveR
                     }
                 }
                 if let Some(g) = &mut generator {
-                    g.fill(&mut input);
+                    g.mix_capture(&mut input);
                 }
                 engine.render(&input, &mut output)?;
                 options.map.pack(&output, pn.format, &mut raw_out)?;

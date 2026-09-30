@@ -271,10 +271,42 @@ fn live_null_applies_runtime_level_before_meters_and_all_six_outputs() {
             }
             std::thread::yield_now();
         }
+        let mut restored = false;
+        let mut resumed = false;
+        shared.generator.request_enabled(false);
+        while Instant::now() < deadline {
+            restored = shared
+                .input
+                .iter()
+                .chain(shared.output.iter())
+                .all(|x| f32::from_bits(x.load(Ordering::Relaxed)) == 0.);
+            if restored {
+                break;
+            }
+            std::thread::yield_now();
+        }
+        shared.generator.request_enabled(true);
+        while Instant::now() < deadline {
+            resumed = f32::from_bits(shared.input[0].load(Ordering::Relaxed)) > 0.99
+                && shared
+                    .output
+                    .iter()
+                    .all(|x| f32::from_bits(x.load(Ordering::Relaxed)) > 0.8);
+            if resumed {
+                break;
+            }
+            std::thread::yield_now();
+        }
         shared.stop.store(true, Ordering::Relaxed);
         let report = worker.join().unwrap();
         assert!(started && muted && (initial - 0.001).abs() < 1e-7);
         assert!(reached, "runtime level did not reach every logical output");
+        assert!(
+            restored && resumed,
+            "capture restoration or source resume failed"
+        );
+        assert_eq!(shared.controls.accepted.load(Ordering::Relaxed), 0);
+        assert_eq!(shared.controls.rejected.load(Ordering::Relaxed), 0);
         assert!(report.fault.is_none());
         assert!(
             report
@@ -284,4 +316,157 @@ fn live_null_applies_runtime_level_before_meters_and_all_six_outputs() {
         );
         assert_eq!(shared.mutes.load(Ordering::Relaxed), 63);
     });
+}
+
+#[test]
+fn capture_restore_ramps_retarget_and_preserve_source_clock() {
+    use shr_pa::{control::GeneratorControl, offline::LiveGenerator};
+    for rate in [1, 8000, 44100, 48000, 192000] {
+        let mut signals = vec![
+            Signal::Noise,
+            Signal::Pink,
+            Signal::Silence,
+            Signal::Impulse,
+        ];
+        if rate > 1 {
+            signals.extend([Signal::Sine(1000.), Signal::Sweep]);
+        }
+        for signal in signals {
+            let control = GeneratorControl::default();
+            let mut live = LiveGenerator::new(Generator::new(signal, rate, 100000).unwrap());
+            let mut reference = Generator::new(signal, rate, 100000).unwrap();
+            let ramp = (rate / 200).max(1) as usize;
+            let mut current = 1.;
+            let mut position = 0;
+            for (enabled, frames) in [
+                (true, 17),
+                (false, ramp / 2),
+                (true, ramp / 3),
+                (false, ramp + 23),
+                (true, ramp + 23),
+            ] {
+                control.request_enabled(enabled);
+                let target = if enabled { 1. } else { 0. };
+                let start = current;
+                for i in 0..frames {
+                    // Repeated requests/service must not restart the transition.
+                    control.request_enabled(enabled);
+                    control.service_live(&mut live);
+                    let capture = [0.25 + (position % 11) as f32 / 100., -0.375];
+                    let mut actual = [capture];
+                    let mut source = [[0.; 2]];
+                    live.mix_capture(&mut actual);
+                    reference.fill(&mut source);
+                    current = if i + 1 >= ramp {
+                        target
+                    } else {
+                        start + (target - start) * (i + 1) as f64 / ramp as f64
+                    };
+                    for (ch, captured) in capture.into_iter().enumerate() {
+                        let expected = ((1. - current) * captured as f64
+                            + current * source[0][ch] as f64)
+                            as f32;
+                        assert!((actual[0][ch] - expected).abs() < 1e-7);
+                        if current == 0. {
+                            assert_eq!(actual[0][ch].to_bits(), captured.to_bits());
+                        } else if current == 1. {
+                            assert_eq!(actual[0][ch], source[0][ch]);
+                        }
+                    }
+                    position += 1;
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn capture_selection_coalesces_and_is_block_independent_with_level_edits() {
+    use shr_pa::{control::GeneratorControl, offline::LiveGenerator};
+    let control = GeneratorControl::default();
+    let mut whole = LiveGenerator::new(Generator::new(Signal::Pink, 48000, 100000).unwrap());
+    let mut split = LiveGenerator::new(Generator::new(Signal::Pink, 48000, 100000).unwrap());
+    for (enabled, db, count) in [
+        (false, -60., 71),
+        (true, 0., 53),
+        (false, -37., 1024),
+        (true, -20., 1024),
+    ] {
+        std::thread::scope(|scope| {
+            scope
+                .spawn(|| {
+                    control.request_enabled(!enabled);
+                    control.request_enabled(enabled);
+                    control.request(GeneratorLevel::new(db).unwrap());
+                })
+                .join()
+                .unwrap();
+        });
+        let capture: Vec<_> = (0..count).map(|i| [i as f32 / 2048., -0.25]).collect();
+        let mut expected = capture.clone();
+        let mut actual = capture;
+        control.service_live(&mut whole);
+        whole.mix_capture(&mut expected);
+        for block in actual.chunks_mut(37) {
+            control.service_live(&mut split);
+            split.mix_capture(&mut []);
+            split.mix_capture(block);
+        }
+        assert_eq!(actual, expected);
+    }
+}
+
+#[test]
+fn capture_restore_services_during_processing_and_cannot_clear_faults() {
+    use shr_pa::{
+        config::Config,
+        control::{GeneratorControl, Handoff},
+        dsp::{Engine, Prepared},
+        offline::LiveGenerator,
+    };
+    let control = GeneratorControl::default();
+    let mut source = LiveGenerator::new(Generator::new(Signal::Pink, 48000, 100000).unwrap());
+    let mut engine = Engine::new(Config::default()).unwrap();
+    let handoff = Handoff::default();
+    handoff
+        .publish(Prepared::new(Config::default(), true).unwrap())
+        .unwrap();
+    handoff.service(&mut engine);
+    assert!(engine.busy());
+    control.request_enabled(false);
+    let mut capture = [[0.25, -0.5]; 128];
+    let mut output = [[0.; 6]; 128];
+    for _ in 0..2 {
+        capture.fill([0.25, -0.5]);
+        control.service_live(&mut source);
+        source.mix_capture(&mut capture);
+        engine.render(&capture, &mut output).unwrap();
+    }
+    assert!(engine.busy());
+    assert_eq!(capture[127], [0.25, -0.5]);
+    // A selected capture fault must reach the engine; toggling back cannot reset it.
+    capture.fill([f32::NAN, 0.]);
+    source.mix_capture(&mut capture);
+    engine.render(&capture, &mut output).unwrap();
+    assert!(engine.faulted());
+    control.request_enabled(true);
+    control.service_live(&mut source);
+    capture.fill([0.; 2]);
+    source.mix_capture(&mut capture);
+    engine.set_mutes([false; 6]);
+    engine.render(&capture, &mut output).unwrap();
+    assert_eq!(output, [[0.; 6]; 128]);
+
+    // Fully selected generation still replaces capture exactly, even nonfinite capture.
+    let mut source = LiveGenerator::new(Generator::new(Signal::Silence, 48000, 1000).unwrap());
+    let mut capture = [[f32::NAN, f32::INFINITY]; 1];
+    source.mix_capture(&mut capture);
+    assert_eq!(capture, [[0.; 2]]);
+    // Silence is a source; off must restore capture rather than produce silence.
+    control.request_enabled(false);
+    control.service_live(&mut source);
+    let mut capture = [[-0.0, 0.5]; 240];
+    source.mix_capture(&mut capture);
+    assert_eq!(capture[239][0].to_bits(), (-0.0_f32).to_bits());
+    assert_eq!(capture[239][1], 0.5);
 }

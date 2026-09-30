@@ -192,6 +192,58 @@ impl Generator {
         }
     }
 }
+/// Runtime-only insertion of an explicitly selected source into mapped capture.
+/// The source clock keeps advancing while bypassed; resuming never reseeds it.
+pub struct LiveGenerator {
+    pub(crate) generator: Generator,
+    mix: f64,
+    target: f64,
+    step: f64,
+    remaining: u32,
+}
+impl LiveGenerator {
+    pub fn new(generator: Generator) -> Self {
+        Self {
+            generator,
+            mix: 1.,
+            target: 1.,
+            step: 0.,
+            remaining: 0,
+        }
+    }
+    pub(crate) fn set_enabled(&mut self, enabled: bool) {
+        let target = if enabled { 1. } else { 0. };
+        if target != self.target {
+            self.target = target;
+            self.remaining = (self.generator.rate / 200).max(1);
+            self.step = (target - self.mix) / self.remaining as f64;
+        }
+    }
+    /// Replace capture in place with a bounded linear source/capture crossfade.
+    /// Exact endpoints avoid rounding capture and avoid evaluating 0 * NaN.
+    pub fn mix_capture(&mut self, capture: &mut [[f32; 2]]) {
+        for frame in capture {
+            let mut source = [[0.; 2]; 1];
+            self.generator.fill(&mut source);
+            if self.remaining > 0 {
+                self.remaining -= 1;
+                self.mix = if self.remaining == 0 {
+                    self.target
+                } else {
+                    self.mix + self.step
+                };
+            }
+            if self.mix == 1. {
+                *frame = source[0];
+            } else if self.mix != 0. {
+                for (sample, generated) in frame.iter_mut().zip(source[0]) {
+                    *sample =
+                        ((1. - self.mix) * *sample as f64 + self.mix * generated as f64) as f32;
+                }
+            }
+        }
+    }
+}
 #[derive(Debug)]
 pub struct RenderReport {
     pub frames: u64,
