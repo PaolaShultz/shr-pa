@@ -1,17 +1,34 @@
 # SHR PA documentation
 
-- [Run commands and controls](RUNNING.md): offline, presets and direct ALSA.
-- [DSP contract](DSP.md): exact crossover, limiter, fault and render behavior.
-- [First engine verification](verification/0003-engine.md): tests and stereo bench evidence.
-- [Live controls verification](verification/0004-live-controls.md): new DSP, transactions and software-streaming evidence.
-- [Current status](STATUS.md): what exists and what remains pending.
-- [DriveRack function map](DRIVERACK_MAP.md): complete PA2 reference inventory for 2×6.
-- [Future work](FUTURE.md): matrix routing and eight-point positional measurement.
-- [Roadmap](ROADMAP.md): requested features, implementation sequence and exit criteria.
-- [Architecture](ARCHITECTURE.md): synchronous audio path, thread boundaries and latency budget.
-- [Hardware](HARDWARE.md): UMC1820 compatibility evidence and physical qualification plan.
-- [Validation](VALIDATION.md): normal checks and opt-in hardware/research work.
-- [2×6 scope decision](decisions/0002-driverack-2x6.md): current scope and deferred extensions.
-- [Foundation decision](decisions/0001-foundation.md): initial project boundaries.
-- [Scaffold verification](verification/0001-scaffold.md): checks performed on the Pi.
-- [2×6 planning verification](verification/0002-driverack-plan.md): source audit and checks.
+Current release: **0.2.0-alpha.1 (“0.2 alpha”)**. Start with the offline editor or
+software-null examples; hardware qualification is a separate activity.
+
+## Operate and understand
+
+- [Running](RUNNING.md): build, first edit, controls, file locations, migration,
+  software-null practice, explicit physical mappings and operational recovery.
+- [Status](STATUS.md): implemented offline/live behavior, dated physical evidence
+  and remaining scope.
+- [DSP contract](DSP.md): processing order, crossover phase/sums, parameter ranges,
+  transitions, faults, schemas and persistence ownership.
+- [Architecture](ARCHITECTURE.md): implemented signal path and thread boundaries,
+  followed by planned extensions and acceptance targets.
+- [Hardware](HARDWARE.md): dated AudioBox observations, UMC1820 sources and future
+  physical qualification. No analog loopback or protection evidence is implied.
+
+## Develop and release
+
+- [Contributing](../CONTRIBUTING.md) and [working agreements](../AGENTS.md).
+- [Validation](VALIDATION.md): normal production checks and opt-in research/hardware work.
+- [Release notes](../CHANGELOG.md) and [0.2 alpha verification](verification/0007-0.2-alpha.md).
+- [Evidence index](verification/README.md): all dated records and their scope.
+- [DriveRack function map](DRIVERACK_MAP.md): complete 42-ID PA2 target inventory.
+- [Roadmap](ROADMAP.md): feature groups, remaining requirements and exit criteria.
+- [Future scope](FUTURE.md): general routing, eight-point positional RTA and the
+  undefined later nine-channel arrangement.
+
+## Decisions
+
+- [0001 — foundation](decisions/0001-foundation.md), with superseded assumptions marked.
+- [0002 — fixed 2×6 and complete PA2 scope](decisions/0002-driverack-2x6.md).
+- [0003 — hardware-independent logical engine](decisions/0003-hardware-independent-engine.md).

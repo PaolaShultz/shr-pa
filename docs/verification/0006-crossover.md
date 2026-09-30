@@ -1,5 +1,9 @@
 # D08 independent crossover controls — 2026-09-30
 
+> Historical evidence for the dated slice below. Test counts, pending features and
+> commit/push statements describe that moment. See the [evidence index](README.md)
+> for subsequent commits and the [0.2 alpha record](0007-0.2-alpha.md) for release checks.
+
 Implemented on the existing uncommitted preset-library/EQ-history checkout.
 Those features and their files are retained. Nothing was committed or pushed;
 no new remote CI result is claimed.

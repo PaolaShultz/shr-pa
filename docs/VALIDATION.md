@@ -1,8 +1,9 @@
 # Validation
 
-## Normal checks — run now
+## Normal production checks
 
 ```sh
+python3 scripts/check-docs.py
 cargo fmt --all -- --check
 cargo clippy --locked --all-targets -- -D warnings
 cargo test --locked --all-targets
@@ -27,7 +28,7 @@ Run the full normal suite for shared engine, render, model, routing, persistence
 concurrency or safety changes, and before publication. During implementation,
 start with the focused checks for the changed behavior.
 
-## Remaining normal coverage to add with later features
+## Current coverage and future additions
 
 Extend the existing DSP/schema/protection/allocation regressions as each new
 module lands. Prepared handoff/backpressure, concurrent publication, response/dynamics,
@@ -91,6 +92,21 @@ full-load duplex soak with zero xruns, no throttling and the chosen processing
 margin. Exercise UI and analysis load during the soak. Report the test duration
 and actual workload with every result. A passing soak is evidence under those
 conditions, not a guarantee of flawless operation in every venue.
+
+## Release checks
+
+Before publication, run all normal commands above, check `--version`, and exercise
+[offline and software-null examples](RUNNING.md) with fresh temporary paths.
+Verify six-channel WAV metadata, source-preserving migration and snapshot size.
+Review changed artwork and run its generator when the diagram or snapshot changes.
+The offline documentation checker validates local links/anchors, SVG XML and
+Cargo application-version consistency; external links need a separate network
+review. An HTTP access block is not evidence that a reference no longer exists.
+
+Record results, skipped test classes and limitations in a dated verification
+record. Review `git diff --check` and the final diff, commit, push to the existing
+upstream and compare the remote branch revision. Report remote CI separately;
+a successful push does not establish passing CI.
 
 ## Artwork
 

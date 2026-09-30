@@ -1,5 +1,9 @@
 # Current status
 
+Application **0.2.0-alpha.1** uses processing schema **v3** and library/working
+envelopes **v2**. These version numbers are independent. See [release notes](../CHANGELOG.md)
+and the [release verification](verification/0007-0.2-alpha.md).
+
 ## Working offline
 
 - Hardware-independent, synchronous 2-input/six-output Rust engine with bounded,

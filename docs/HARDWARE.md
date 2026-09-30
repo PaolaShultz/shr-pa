@@ -51,7 +51,7 @@ are future work; neither changes the initial 2×6 qualification target.
 The original scaffold inspection was read-only. The subsequent implementation
 trial opened direct stereo ALSA with explicit user authorization and the amp off;
 see [measurements and limits](verification/0003-engine.md).
-The current OS is observed as Debian 13; the project target is 64-bit Linux Lite.
+The OS in that record was Debian 13; the project target is 64-bit Linux Lite.
 
 The Pi 5 has two USB 3.0 ports supporting simultaneous 5 Gbps operation, per
 [Raspberry Pi's specification](https://www.raspberrypi.com/products/raspberry-pi-5/).

@@ -1,5 +1,9 @@
 # Scaffold verification — 2026-09-29
 
+> Historical evidence for the dated slice below. Test counts, pending features and
+> commit/push statements describe that moment. See the [evidence index](README.md)
+> for subsequent commits and the [0.2 alpha record](0007-0.2-alpha.md) for release checks.
+
 Executed locally on the Raspberry Pi 5 described in [hardware](../HARDWARE.md),
 using Rust 1.97.1. Scope: offline scaffold, not audio performance.
 

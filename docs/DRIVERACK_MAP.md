@@ -5,7 +5,7 @@ implemented; the inventory below includes substantial remaining work.** This map
 operation and maintenance. It does not claim coverage of every other DriveRack
 model or identical proprietary algorithms.
 
-The current task is a simple 2×6 processor. Matrix routing, advanced patching,
+The current scope is a fixed 2×6 processor. Matrix routing, advanced patching,
 eight-point positional measurement and the later nine-channel arrangement are
 in [future work](FUTURE.md). They are not dependencies of this plan.
 
@@ -18,6 +18,11 @@ The official download returned HTTP 403 during this audit; the mirror was readab
 Page references below use printed manual pages, not PDF viewer page numbers.
 Also checked: [product specifications](https://dbxpro.com/en-US/products/driverack-pa2)
 and [Harman's power-up mute explanation](https://help.harmanpro.com/en_US/driverack-pa2/driverack-pa2-powerup-mute-state).
+
+The tables preserve complete target requirements. They are not current CLI/API
+contracts: for example, distance entry, limiter bypass/knee and automatic EQ
+history remain planned. Use [DSP](DSP.md) for implemented parameter ranges and
+the completion summary below for partial coverage.
 
 Each row has a stable ID, a source location, our implementation plan, and an
 acceptance check. P1–P8 refer to the [implementation sequence](ROADMAP.md).
@@ -52,7 +57,7 @@ A stereo card does not reduce the six logical outputs. UMC1820 is a future targe
 | Four full-range feeds + subs | Full-range/main band | Same source with its own band settings | Sub band |
 
 Provide mono-input and stereo-input variants where applicable. Bass may be stereo
-or a mono sum. For a single mono sub, use L-L and mute L-R. The proposed sum is `(L + R) / 2`, with documented gain. Its scaling is our design
+or a mono sum. For a single mono sub, use L-L and mute L-R. The implemented sum is `(processed_L + processed_R) / 2`, with documented gain. Its scaling is our design
 choice, not a claim about undocumented dbx coefficients.
 
 These are fixed configurations and band options within 2×6, not a user-editable
@@ -175,11 +180,13 @@ remote application/networking; updates; signal order; hardware specifications.
 Warranty/service terms and vendor support contacts are documentation, not DSP or
 control functions to implement.
 
-Rows retain their complete target scope. The first working slice covers C01 and
+Rows retain their complete target scope. The 0.2 alpha baseline covers C01 and
 most C02/C03, D01 linked/separate 31-band GEQ with bypass and original manual/flat/tonal curves,
-D02/D03 bell/shelf PEQ with bypass and scoped flatten/restore (automatic EQ history/PA2 slope units pending), D06 linked
-compressor with hard/soft knee and explicit timing, D07/D08 independent BW/LR edges plus default compensated LR24/D09 hard sample limiter/D10,
-and initial D11/O01/O02/O04/O05 controls and presets. C04 remains partial because
+D02/D03 bell/shelf PEQ with bypass and scoped flatten/restore (automatic EQ history/PA2 slope units pending),
+D06 linked compressor with hard/soft knee and explicit timing, D07 input delay,
+D08 independent BW/LR edges plus default compensated LR24, D09 hard sample limiter
+and D10 output alignment delay, plus
+initial D11/O01/O02/O04/O05 controls and presets. C04 remains partial because
 the other planned modules are absent. M03 has deterministic white noise and
 other bench sources; pink noise and measurement workflows remain pending.
 Live transactions, filter/delay transitions and compact module controls extend

@@ -5,6 +5,11 @@ The [DriveRack function map](DRIVERACK_MAP.md) is the complete inventory for the
 PA2 reference: processing, setup, measurement, presets, operation, remote control,
 maintenance and hardware differences. The first engine, offline tools and direct ALSA slice now work; see [status](STATUS.md).
 
+This is a target/exit-criteria plan, not a list of completed features. Current
+behavior is summarized in [STATUS](STATUS.md); dated evidence is indexed in
+[verification](verification/README.md). Requirements below remain until their
+entire acceptance scope is satisfied.
+
 Stages describe feature groups, not a requirement to finish hardware qualification
 before DSP work. P2 and initial P3/P7 work proceed independently of P1. Keep all
 mapped functions visible as work progresses. LR24 is the first/default crossover.
@@ -15,7 +20,8 @@ are [future work](FUTURE.md).
 ## P0 — foundation (done)
 
 Rust package, toolchain/lockfile, offline 40×13 terminal shell, MIT license,
-illustrated documentation and Linux x86-64/ARM64 CI. No audio device is opened.
+illustrated documentation and Linux x86-64/ARM64 CI. The foundation commands open
+no audio device; the later explicit `live` command does.
 
 ## P1 — capability-based transport and eventual hardware qualification
 
@@ -57,10 +63,9 @@ peak limiter and meters. Use two cascaded Butterworth sections per LR24 edge;
 verify complete three-way summation/phase, not just a pair of filters. Alignment
 and compensation decisions must be represented in the response tests.
 
-Implement delays as preallocated circular buffers. At 48 kHz, two 100 ms input
-lines plus six 10 ms output lines require 12,480 sample slots, about 49 KiB in
-f32 before storage padding; memory is not the limiting factor here. Avoid abrupt
-read-position jumps during live adjustment; use bounded transitions.
+Delays use preallocated circular buffers and bounded two-tap transitions. At
+48 kHz the implementation allocates 12,488 f64 slots including padding (about
+98 KiB). See the [delay contract](DSP.md#delays-mutes-meters-and-faults).
 
 Implement the limiter envelope with a measured overshoot/recovery bound. Tie
 output protection to actual calibration; any lookahead is an explicit delay.
@@ -85,7 +90,8 @@ PEQ, eight-band speaker PEQs, compressor and full parameter/bypass controls.
 The mapped crossover families now coexist with the retained layout LR24 default.
 
 Design coefficients outside render. Use double precision for coefficient design;
-measure f32 versus f64 state before choosing. Check shelf response and extreme
+the current implementation uses f64 state. Measure alternatives before changing
+it. Check shelf response and extreme
 Q settings. Do not interpolate filters through unstable coefficient sets. Bound
 any extra work for transitions and preserve channel balance in linked dynamics.
 

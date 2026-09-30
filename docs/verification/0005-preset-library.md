@@ -1,5 +1,9 @@
 # Practical P3 preset and EQ state — 2026-09-30
 
+> Historical evidence for the dated slice below. Test counts, pending features and
+> commit/push statements describe that moment. See the [evidence index](README.md)
+> for subsequent commits and the [0.2 alpha record](0007-0.2-alpha.md) for release checks.
+
 Historical slice record. The later [D08 slice](0006-crossover.md) upgrades processing
 to v3 and library/working envelopes to v2 with explicit migration of EQ histories.
 

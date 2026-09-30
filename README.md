@@ -2,7 +2,9 @@
 
 # SHR PA
 
-**Experimental Rust PA management for Raspberry Pi 5 and Linux.**
+**0.2.0-alpha.1 (“0.2 alpha”) — experimental Rust PA management for Raspberry Pi 5 and Linux.**
+
+[Release notes](CHANGELOG.md) · [Documentation index](docs/README.md)
 
 [![Rust checks](https://github.com/PaolaShultz/shr-pa/actions/workflows/ci.yml/badge.svg)](https://github.com/PaolaShultz/shr-pa/actions/workflows/ci.yml)
 
@@ -17,7 +19,7 @@ Six-channel offline WAV rendering works without an audio interface. Direct ALSA
 runs selected logical outputs on the physical channels available today, with no
 implicit stereo mixdown.
 
-The connected AudioBox USB 96 has exercised the stereo path. **UMC1820 is a future
+The 2026-09-29 AudioBox USB 96 trials exercised the stereo transport path. **UMC1820 is a future
 target, not a development prerequisite.** Analog latency and speaker protection
 are unmeasured; no loopback is connected. See the [bench record](docs/verification/0003-engine.md).
 
@@ -28,13 +30,19 @@ Requires Linux, Rust **1.97.1** via rustup, a C linker, `pkg-config` and ALSA he
 
 ```sh
 cargo build --release --locked
-./target/release/shr-pa init preset.json
-./target/release/shr-pa render preset.json sweep six-outputs.wav 5 --unmute
-./target/release/shr-pa
+./target/release/shr-pa --version
+# Use a new session directory: init replaces an existing destination.
+mkdir -p artifacts
+SESSION=$(mktemp -d "$PWD/artifacts/session-XXXXXX")
+./target/release/shr-pa init "$SESSION/preset.json"
+./target/release/shr-pa check "$SESSION/preset.json"
+./target/release/shr-pa render "$SESSION/preset.json" sweep "$SESSION/six-outputs.wav" 5 --unmute
+(cd "$SESSION" && ../../target/release/shr-pa)
 ```
 
-The default terminal is an offline preset editor with real DSP previews, not a
-hardware stream. Use Tab/arrows and footer mouse buttons for pages; `q` exits.
+The default terminal is an offline preset editor with real DSP previews. It opens
+no audio device. A fresh session starts with the default three-way preset; press
+`l` to import an existing `preset.json`. Use Tab/arrows and footer mouse buttons for pages; `q` exits.
 `s`/`l` save/load `preset.json`; `r` renders a preview; `1`…`6` toggle logical mutes.
 The compact layout is **40×13**. Terminal state is restored on handled exits.
 
@@ -45,7 +53,7 @@ The compact layout is **40×13**. Terminal state is restored on handled exits.
 ```sh
 ./target/release/shr-pa devices
 # Substitute the selected ALSA card ID. Starts muted; u unmutes, q stops.
-./target/release/shr-pa live preset.json \
+./target/release/shr-pa live "$SESSION/preset.json" \
   hw:CARD=CARD_ID,DEV=0 hw:CARD=CARD_ID,DEV=0 \
   2 2 0,1 0,1,-,-,-,- 10 --ui
 ```
@@ -66,7 +74,7 @@ restore sources, extended limiter modes, subharmonic synthesis, feedback suppres
 measurement/RTA, AutoEQ/setup workflows, speaker profiles, remote controls and maintenance.
 The local library, working recovery, manual EQ restore and crossover controls are
 [implemented](docs/STATUS.md).
-These remain planned or partial, rather than being presented as implemented.
+The full PA2 function plan remains incomplete.
 There is no claim of proprietary dbx algorithm equivalence.
 
 General matrices, advanced routing, eight-point positional RTA and the later
@@ -74,8 +82,7 @@ nine-channel arrangement remain [future work](docs/FUTURE.md).
 
 [Validation and test policy](docs/VALIDATION.md) · [Contributing](CONTRIBUTING.md)
 
-Built independently of related [SHR DAW](https://github.com/PaolaShultz/shr-daw),
-[SHR FX](https://github.com/PaolaShultz/shr-fx) and
-[SHR Rec](https://github.com/PaolaShultz/shr-rec) projects.
+Built independently of the related SHR projects, including
+[SHR DAW](https://github.com/PaolaShultz/shr-daw).
 MIT licensed. Documentation artwork is original. Vendor marks belong to their
 owners; SHR PA is an independent project.

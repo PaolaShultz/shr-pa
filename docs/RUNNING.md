@@ -6,12 +6,26 @@ No sibling repository, JACK server or UMC1820 is required.
 
 ```sh
 cargo build --release --locked
-./target/release/shr-pa init preset.json
-./target/release/shr-pa check preset.json
-./target/release/shr-pa
+./target/release/shr-pa --version
+# From the repository root, create an isolated session.
+SHR_PA_BIN="$PWD/target/release/shr-pa"
+mkdir -p artifacts
+SESSION=$(mktemp -d "$PWD/artifacts/session-XXXXXX")
+"$SHR_PA_BIN" init "$SESSION/preset.json"
+"$SHR_PA_BIN" check "$SESSION/preset.json"
+(cd "$SESSION" && "$SHR_PA_BIN")
 ```
 
-The default terminal is an **offline editor**. It opens no audio device. `s` saves
+The shell remains in the repository root after the editor exits. The examples
+below reuse `$SESSION`; migration examples name their own source/destination paths.
+
+`init` writes a generic three-way LR24 preset (120/1800 Hz, stereo, 48 kHz,
+128-frame maximum block, zero gain/delay, flat PEQ, bypassed GEQ/compressor,
+−1 dBFS limiters). It **replaces an existing destination without a prompt**.
+Use a fresh path. `render` also replaces its output WAV.
+
+The default terminal is an **offline editor**. It opens no audio device. It starts with defaults or compatible working recovery;
+it does not automatically import `preset.json`. Press `l` to import that file. `s` saves
 `preset.json` in the current directory (press twice to confirm an existing file); `l` loads and validates it, muting all
 outputs. Saving is atomic (file sync, rename, directory sync). Invalid presets
 leave the previous configuration intact. Schema v3 rejects unknown/missing fields and unknown versions. Runtime mutes and active test signals are never saved.
@@ -20,6 +34,14 @@ offline, or beside the command-line preset live. Keep each system/session in its
 own directory. A second editor can run without persistence when that library is
 already locked; the library view reports `NO STORAGE`. Snapshots, WAV rendering,
 validation and non-UI live runs do not recover or write working state.
+
+### First edit and preview
+
+In a fresh offline session, press `u`, then `r` for a computed preview. This
+produces meters only, with no speaker output. Press `g` to raise input gain,
+then `r` again. Press `:`, type `select U1`, Enter, then `:save My first setup`
+and Enter to save a library preset. `s` separately exports processing JSON.
+Press `m` to close all mutes and `q` to exit. Reopening recovers edits muted.
 
 ### Local library and working recovery
 
@@ -98,8 +120,8 @@ touchscreen integration remains unverified.
 | `r` | Run an offline 1 kHz, −20 dBFS preview; show computed peaks |
 | `s` / `l` | Save (confirm overwrite) / load `preset.json` |
 
-The controls above also work live, except `r` (offline preview only). Gain,
-polarity, filters, limiter and delay edits transition for 20 ms. Topology edits
+The controls above also work live, except `r` (offline preview only). During live
+streaming, gain, polarity, filters, limiter and delay edits transition for 20 ms. Topology edits
 use a 5 ms mute, reconfigure at a block boundary, hold muted through the 20 ms
 transition, then resume the runtime mute choices. Preset recall stays muted until
 a fresh unmute after completion. Sample-rate/block-size changes require restart.
@@ -193,11 +215,11 @@ Changing only the version number is not a migration.
 ## Six-channel offline artifacts
 
 ```sh
-./target/release/shr-pa render preset.json impulse impulse.wav 1 --unmute
-./target/release/shr-pa render preset.json sweep sweep.wav 5 --unmute
-./target/release/shr-pa render preset.json noise noise.wav 5 --unmute
-./target/release/shr-pa render preset.json sine:1000 tone.wav 1 --unmute
-./target/release/shr-pa render preset.json stereo-input.wav processed.wav 60 --unmute
+./target/release/shr-pa render "$SESSION/preset.json" impulse "$SESSION/impulse.wav" 1 --unmute
+./target/release/shr-pa render "$SESSION/preset.json" sweep "$SESSION/sweep.wav" 5 --unmute
+./target/release/shr-pa render "$SESSION/preset.json" noise "$SESSION/noise.wav" 5 --unmute
+./target/release/shr-pa render "$SESSION/preset.json" sine:1000 "$SESSION/tone.wav" 1 --unmute
+./target/release/shr-pa render "$SESSION/preset.json" stereo-input.wav "$SESSION/processed.wav" 60 --unmute
 ```
 
 Output is a six-channel IEEE float WAV, ordered **H-L, H-R, M-L, M-R, L-L, L-R**.
@@ -211,12 +233,28 @@ impulse has a 10 ms lead-in to clear the startup ramp. Sweep is logarithmic from
 20 Hz to 0.4 × sample rate. Noise is seeded white noise. Pink noise is pending.
 Timing reports measure just `Engine::render`, excluding WAV I/O and generation.
 
+## Software-null streaming (no hardware)
+
+With a fresh preset, this bounded command exercises the live backend and generator
+using only ALSA's software `null` PCM:
+
+```sh
+./target/release/shr-pa live "$SESSION/preset.json" null null \
+  2 2 0,1 0,1,-,-,-,- 1 --unmute --signal=sine:1000
+python3 scripts/check-live-controls.py target/release/shr-pa
+```
+
+For interactive practice, replace `1 --unmute --signal=sine:1000` with
+`86400 --ui --signal=sine:1000`; press `u` after pending/busy clears, edit modules,
+then `m` and `q`. Null PCM has no USB clock and can run faster than real time;
+duration counts program frames. It provides no physical timing or sound evidence.
+
 ## Direct ALSA: explicit hardware and channel selection
 
 ```sh
 ./target/release/shr-pa devices
 # Replace CARD_ID using the device inspection above; no card number is assumed.
-./target/release/shr-pa live preset.json \
+./target/release/shr-pa live "$SESSION/preset.json" \
   hw:CARD=CARD_ID,DEV=0 hw:CARD=CARD_ID,DEV=0 \
   2 2 0,1 0,1,-,-,-,- 10 --ui
 ```
@@ -229,7 +267,8 @@ sends H-L/H-R to physical playback channels 0/1. To audition the low pair use
 before opening ALSA. Unused physical channels are cleared. Nothing sums six
 outputs into stereo; all six DSP channels continue to run.
 
-Capture/playback must share one card/clock. The backend independently negotiates
+Capture/playback must share one card/clock; the operator must select matching
+endpoints because the backend does not verify a shared clock domain. The backend independently negotiates
 native formats and actual period/buffer sizes, requires the requested rate and
 channel counts, and prints the results. Supported conversion formats are S32_LE,
 S24_3LE, S16_LE and FLOAT_LE (in preference order). Raw `hw:` endpoints avoid
@@ -246,7 +285,7 @@ from a preset. Without that option, the mapped physical capture feeds the DSP.
 
 ```sh
 # Explicit, bounded hardware experiment; keep the external system at a known level.
-./target/release/shr-pa live preset.json \
+./target/release/shr-pa live "$SESSION/preset.json" \
   hw:CARD=CARD_ID,DEV=0 hw:CARD=CARD_ID,DEV=0 \
   2 2 0,1 0,1,-,-,-,- 10 --unmute --signal=sine:1000
 ```
@@ -257,19 +296,19 @@ Normal/keyboard/signal shutdown ramps mutes and flushes silence before dropping
 both streams. Xruns, suspend, disconnect and numerical faults end the session,
 drop both streams and require an **explicit restart** (which renegotiates and
 starts muted). This first backend does not reconnect or resume sound automatically.
-A busy device is a local error; offline DSP remains usable. On this Pi, the
-existing `jack.service` was restored after testing and may own the card. For a
-deliberate direct-ALSA session, stop it with `sudo systemctl stop jack.service`,
-then restore it afterward with `sudo systemctl start jack.service`. SHR PA does
-not stop other applications or services automatically. Software cannot
+A busy device is a local error; offline DSP remains usable. Leave existing audio
+services alone during offline/null validation. The dated AudioBox trials found
+JACK owning the card; that is not a statement about the current host. Hardware
+access needs a separately arranged session. SHR PA does not stop other applications
+or services automatically. Software cannot
 promise analog silence when USB, process or power fails.
 
 ## Three separate limits
 
 1. **Logical engine:** two inputs and six outputs, regardless of hardware width.
-2. **Present hardware:** the AudioBox reports two capture/two playback channels;
+2. **Recorded hardware (2026-09-29):** the AudioBox reports two capture/two playback channels;
    only an explicitly selected output pair can be played at once.
-3. **Present measurement connections:** no analog loopback and amp off, confirmed
+3. **Recorded measurement connections (2026-09-29):** no analog loopback and amp off, confirmed
    by the user. Processing time, sample peaks, negotiated buffers and xruns were
    measured. Analog round-trip latency, socket/voltage calibration, acoustic
    response and speaker protection were not measured.
@@ -277,3 +316,32 @@ promise analog silence when USB, process or power fails.
 See [DSP behavior](DSP.md), [status](STATUS.md) and the
 [bench record](verification/0003-engine.md). UMC1820 qualification is future
 acceptance work and does not gate engine development.
+
+## Backup, recovery and rollback
+
+| Location | Contents / ownership |
+| --- | --- |
+| `preset.json` offline; CLI preset path live | Explicit processing import/export, schema v3 |
+| `.shr-pa/U1.json` … `U75.json` | Saved names, processing and EQ history; envelope v2 |
+| `.shr-pa/working.json` | Desired edits, histories, selection and saved baseline; envelope v2 |
+| `.shr-pa/working-rejected-*.json` | Preserved rejected recovery bytes after explicit reset |
+| `.shr-pa/lock` | Editor lock; not a preset or recovery record |
+
+Live UI uses `.shr-pa` beside its CLI preset; offline uses the current directory.
+Stop editors before copying the standalone preset and the whole `.shr-pa` directory
+for backup. Keep the old executable/revision with its original files for rollback;
+older applications cannot read newer schemas. Migrate copies into a new session as
+shown above. Do not replace originals by editing version numbers.
+
+| Symptom | Action |
+| --- | --- |
+| `NO STORAGE` | Close the other editor or fix the reported directory/permission error, then restart. The OS releases a lock on exit/crash; deleting its file is not an unlock procedure. |
+| `Recovery BLOCKED` | Preserve the file; migrate supported legacy state into a new session, or use `:recover-reset` to archive it and checkpoint current edits. |
+| `Unsaved` | Resolve storage failure and make/checkpoint another edit; do not assume the last edits survived a restart. |
+| Pending/busy | Wait for the latest desired transaction to settle, then retry unmute. Saving still records desired settings. |
+| Rate/block recall rejected | Start a compatible session with an explicit standalone preset; the offline editor's startup defaults are 48 kHz/128. |
+| Stream/numerical fault | End the session, investigate the error and explicitly restart. Recall/recovery/unmute cannot clear it. |
+
+A terminal left damaged after an unhandled kill can be restored with `stty sane`
+and `reset` in that terminal. Handled exits restore it automatically. A software
+mute and terminal cleanup do not establish physical silence after process failure.

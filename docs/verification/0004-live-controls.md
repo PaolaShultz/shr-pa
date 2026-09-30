@@ -1,5 +1,9 @@
 # Live transactions and P3 core controls — 2026-09-29
 
+> Historical evidence for the dated slice below. Test counts, pending features and
+> commit/push statements describe that moment. See the [evidence index](README.md)
+> for subsequent commits and the [0.2 alpha record](0007-0.2-alpha.md) for release checks.
+
 Subsequent preset-library, working-recovery and EQ-history work is recorded in
 [0005](0005-preset-library.md). This record retains its original test scope.
 

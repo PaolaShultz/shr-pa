@@ -1,8 +1,9 @@
 # Architecture — fixed 2×6 processor
 
-**Target architecture with an implemented first slice.**
+**Implemented 0.2 alpha architecture, with planned extensions identified below.**
 The actual processing/transport contracts are in [DSP](DSP.md) and [running](RUNNING.md).
-The diagram below includes still-planned feedback, bass synthesis and measurement.
+The main diagram shows the implemented path. Feedback, bass synthesis and
+measurement remain planned extensions.
 GEQ, bell/shelf PEQ, compression and independent BW/LR crossover edges are
 implemented; see [DSP](DSP.md). Layout LR24 preserves the compensated three-way
 tree; independent mode uses fixed per-pair HP/LP cascades without a routing graph.
@@ -13,30 +14,33 @@ The [function map](DRIVERACK_MAP.md) defines the PA2 baseline and the
 
 ## Signal path
 
-Two program inputs, six outputs and a separate setup-microphone capture channel.
-Start with fixed full-range/two-way/three-way configurations, not a graph editor.
-The microphone feeds measurement only. Mono-input and mono-bass choices have
-explicit source and gain rules in the map.
+Two program inputs and six logical outputs are implemented. A separate setup
+microphone is in the function plan; there is no microphone/analysis path yet.
+
+![Implemented signal path and planned extensions](assets/signal-flow.svg)
 
 ```text
-Program L/R -> input meters -> input mode / test-source selection
-  -> 31-band GEQ -> 8-band room PEQ -> feedback notches
-  -> subharmonic mix -> compressor -> input/backline delay
-  -> crossover, band gain and polarity
-       HIGH L/R -> speaker PEQ -> limiter -> alignment delay -> mutes -> meters
-       MID  L/R -> speaker PEQ -> limiter -> alignment delay -> mutes -> meters
-       LOW  L/R -> speaker PEQ -> limiter -> alignment delay -> mutes -> meters
-
-Setup mic -> calibration / capture quality -> RTA and setup measurement
-Program tap -> feedback detector -> prepared notch updates
+Mapped capture / offline WAV / explicit generated source
+  -> input meters -> stereo or mono-left -> input gain
+  -> 31-band GEQ -> 8 input PEQs/channel -> linked compressor -> input delay
+  -> layout LR24 tree OR independent pair HP -> LP
+       HIGH L/R -> gain/polarity -> PEQ -> limiter -> delay -> guard -> mutes -> meters
+       MID  L/R -> gain/polarity -> PEQ -> limiter -> delay -> guard -> mutes -> meters
+       LOW  L/R -> gain/polarity -> PEQ -> limiter -> delay -> guard -> mutes -> meters
+  -> six-channel WAV OR explicit logical-to-physical playback map
 ```
 
-This follows the processing order in the PA2 manual's block diagram (printed
-p. 60; [source](https://www.fullcompass.com/common/files/43013-DriveRackPA2UserManual.pdf)).
-Noise replaces program at the defined source-selection point for measurement;
-its start/stop state is explicit. Verify excitation paths for each wizard.
-Stereo band settings are paired; delay/filter state and output mutes are per
-logical channel. Inactive and unmapped hardware outputs must be written as zero.
+Stereo band settings are paired; filter/delay state and output mutes are per
+logical channel. All six outputs process even with only two physical outputs.
+Inactive logical outputs and unused physical playback channels are zero.
+Unmapped logical outputs retain their processing and meters.
+
+The [PA2 function plan](DRIVERACK_MAP.md) follows its manual's processing order
+(printed p. 60). Future feedback notches follow input PEQ, and subharmonic mix
+precedes compression. A separate setup mic will feed analysis only; bounded
+program taps will feed feedback detection. Neither path exists in 0.2 alpha.
+The current generator replaces input before metering/processing; saved presets
+never start it. See [exact DSP semantics](DSP.md).
 
 ## Boundaries
 
@@ -45,8 +49,8 @@ logical channel. Inactive and unmapped hardware outputs must be written as zero.
 | Audio host | ALSA duplex, conversion, clock/timing and faults | One synchronous audio thread |
 | DSP core | Fixed configuration, EQ/crossover, dynamics, delays and generator | Same thread and block |
 | Control | Validate commands, prepare parameters, presets and setup state | Outside real time |
-| Analysis | One-mic RTA/measurement, EQ fitting and feedback detection | Workers using bounded taps |
-| Interface | Local terminal/touch; remote client in P8 | Independent of audio deadlines |
+| Analysis (planned) | One-mic RTA/measurement, EQ fitting and feedback detection | Workers using bounded taps |
+| Interface | Local terminal/mouse; physical touch and remote client planned | Independent of audio deadlines |
 
 The DSP is implemented in the library, separate from transport and terminal work. The control boundary
 should support later engine/client separation for remote operation. Do not add
@@ -85,12 +89,14 @@ with intentional delay settings separately. No operating buffer is approved yet.
 - Reject non-finite/out-of-range parameters. Define numerical faults, xruns,
   disconnects and clock loss without silently bypassing output protection.
 
-For budgeting, the fully enabled baseline can contain 62 GEQ sections, 16 input
+For the future feedback implementation, the processing budget includes 62 GEQ sections, 16 input
 PEQ sections, 48 output PEQ sections, and 24 notch instances when the 12 feedback
 filters are applied to both program channels. Add actual crossover sections,
 subharmonic filters, envelopes and conversions. Count enabled work and benchmark
 that configuration, including worst supported crossover slopes and parameter edits.
-The count is an implementation budget, not measured CPU usage.
+These include planned filters. Current counts and transition bounds are in
+[DSP transactions](DSP.md#transactions-and-transitions); none of these counts
+establish measured CPU usage.
 
 Start scalar with contiguous storage. Design coefficients in f64, compare f32/f64
 state accuracy and speed on the Pi, and handle denormals deliberately. Optimize
@@ -105,7 +111,7 @@ measurements; investigate PREEMPT_RT if the standard kernel cannot meet deadline
 
 ## State, persistence and recovery
 
-The first slice uses a validated fixed schema, atomic JSON save/load, runtime
+The implementation uses a validated fixed schema, atomic JSON save/load, runtime
 mutes outside presets and explicit restart on audio faults. Prepared transactions now support live parameter edits through a single atomic
 slot. Related edits begin together at block boundaries, with bounded transitions
 and preserved unrelated state. Topology edits/recalls use mute/reconfigure/resume.
@@ -116,9 +122,9 @@ block further working writes until explicitly archived. Recovery is processing-o
 and startup-muted. See [persistence details](DSP.md#library-and-working-state).
 The rest of this section includes longer-term preferences, profiles and recovery targets.
 
-Use a fixed, versioned configuration schema. Presets contain processing, setup
-selections and profile references; mutes, RTA preferences and utility/access settings
-are global. Working edits can be recovered without overwriting saved presets.
+For future setup/profile support, extend the versioned schema explicitly. Planned
+presets will also contain setup selections and profile references. RTA preferences
+and utility/access settings will be global; current mutes are runtime-only. Working edits can be recovered without overwriting saved presets.
 Apply related settings as a validated transaction at a block boundary; incompatible
 configuration changes use a defined mute/reconfigure/resume transition.
 

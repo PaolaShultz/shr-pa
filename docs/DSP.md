@@ -5,6 +5,27 @@
 `offline` owns sources/WAV I/O; `transport` owns ALSA/conversion; `ui` and
 `commands` own terminal/control operations. No general routing graph is compiled.
 
+## Versions and state ownership
+
+The application release is **0.2.0-alpha.1**. It does not change the processing
+schema **v3** or library/working envelope **v2** introduced before this release.
+Serde types in [config.rs](../src/config.rs) and [library.rs](../src/library.rs),
+plus their validators, define the accepted JSON; no separate JSON Schema file
+is shipped. `init` emits a complete default processing document.
+
+| State | Owner | Persisted / applied |
+| --- | --- | --- |
+| Processing parameters | Controller desired Config; audio Engine applied Config | v3 standalone JSON or embedded in envelopes; prepared transaction at block boundary |
+| GEQ manual arrays and PEQ restore points | Controller library state | v2 slots and working record; absent from standalone export |
+| Selected slot, active ID and saved comparison baseline | Controller | Working record; selection alone does not recall |
+| Filter/delay history and dynamics envelopes | Audio Engine | Never serialized; unchanged sections survive edits |
+| Mute targets and fault latches | Runtime control/audio state | Never serialized; startup muted, faults require reconstruction/restart |
+| Device map and generator request | Explicit live command | Never restored from a preset or working record |
+
+The displayed desired snapshot can lead the applied engine while pending/busy.
+Saving records desired processing, not a claim that audio has settled. See
+[transactions](#transactions-and-transitions) and [library state](#library-and-working-state).
+
 ## Prepared render
 
 `Engine::new(Config)` validates every parameter, computes f64 coefficients,

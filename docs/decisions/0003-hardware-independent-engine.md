@@ -4,6 +4,10 @@ Accepted and implemented, 2026-09-29. Supersedes any development ordering in
 0001/0002 that could make UMC1820 qualification a prerequisite for the DSP engine.
 Those earlier records describe the historical scaffold/planning work.
 
+The stopped-only edit policy below describes the initial engine slice and was
+superseded by [prepared live transactions](../verification/0004-live-controls.md).
+The logical/physical separation remains current; see [DSP](../DSP.md) for present contracts.
+
 The current logical processor remains 2×6. UMC1820 is an eventual target; its
 availability, channel qualification and tests do not gate engine development.
 The currently connected AudioBox supplies stereo capture/playback. A validated,

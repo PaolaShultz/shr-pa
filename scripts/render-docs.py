@@ -38,31 +38,28 @@ for i in range(5):
 parts += [text(718, 343, "ROUTE  /  ALIGN  /  MEASURE", 15, MUTED)]
 (OUT / "banner.svg").write_text(svg(1200, 380, "SHR PA", "Highly experimental Rust PA management for Raspberry Pi 5, with abstract interconnected signal paths.", "".join(parts)))
 
-parts = [text(40, 48, "DRIVERACK FUNCTIONS / 2 INPUTS × 6 OUTPUTS", 23, TEAL),
-         text(40, 80, "Working: LR24 / GEQ / PEQ / compressor / delays / limiter; feedback and synth planned", 17, MUTED)]
-# The processing order and six labelled outputs are intentional; this is a plan.
-for x, heading, detail in [(40, "INPUT L / R", "Program or test signal"),
-                           (315, "INPUT PROCESSING", "GEQ → room EQ → feedback"),
-                           (710, "DYNAMICS + DELAY", "Bass synth → comp → pre-delay")]:
-    width = 240 if x == 40 else 360
-    parts.append(f'<rect x="{x}" y="112" width="{width}" height="95" rx="12" fill="{PANEL}" stroke="#334956"/>')
-    parts += [text(x + 16, 148, heading, 19), text(x + 16, 181, detail, 17, MUTED)]
-    if x < 710:
-        start = x + width
-        parts.append(f'<path d="M {start} 158 h 33 m -7 -5 l 7 5 l -7 5" stroke="{TEAL}" stroke-width="2" fill="none"/>')
-parts += [f'<path d="M 890 207 V 235 H 150 V 315" stroke="{TEAL}" stroke-width="2" fill="none"/>',
-          f'<rect x="40" y="315" width="220" height="98" rx="12" fill="{PANEL}"/>',
-          text(59, 354, "CROSSOVER", 22), text(59, 385, "Band gain + polarity", 17, MUTED)]
-for index, band in enumerate(["HIGH", "MID", "LOW"]):
-    y = 270 + index * 75
-    parts.append(f'<path d="M 260 364 H 292 V {y+29} H 325" stroke="{TEAL}" stroke-width="2" fill="none"/>')
-    parts.append(f'<rect x="325" y="{y}" width="745" height="58" rx="10" fill="{PANEL}"/>')
-    parts += [text(342, y+36, f"{band} L/R", 20, TEAL),
-              text(478, y+36, "PEQ → limiter → delay → mutes → meters", 20)]
-parts += [text(40, 525, "SETUP MIC → RTA / LEVEL ASSIST / AUTOEQ", 19, AMBER),
-          text(40, 556, "One microphone; ordinary sequential measurements. Eight-point positional RTA is future work.", 17, MUTED),
-          text(40, 600, "Control and analysis run outside the synchronous audio path.", 17, MUTED)]
-(OUT / "signal-flow.svg").write_text(svg(1120, 630, "Planned SHR PA 2-input 6-output architecture", "Stereo program input through EQ, feedback suppression, bass synthesis, compression, pre-delay and crossover. Three output pairs each have EQ, limiter, delay, mutes and meters. A separate setup microphone feeds measurement.", "".join(parts)))
+parts = [text(40, 48, "IMPLEMENTED / 2 INPUTS × 6 LOGICAL OUTPUTS", 23, TEAL),
+         text(40, 80, "Capture, stereo WAV or explicit generator → meters → stereo/mono-left → input gain", 17, MUTED)]
+for x, heading, detail in [(40, "INPUT EQ", "31-band GEQ → 8 PEQs/channel"),
+                           (405, "DYNAMICS", "Linked compressor → input delay"),
+                           (770, "CROSSOVER", "Layout LR24 or pair HP → LP")]:
+    parts.append(f'<rect x="{x}" y="112" width="330" height="95" rx="12" fill="{PANEL}" stroke="#334956"/>')
+    parts += [text(x + 16, 148, heading, 19), text(x + 16, 181, detail, 16, MUTED)]
+    if x < 770:
+        parts.append(f'<path d="M {x+330} 158 h 33 m -7 -5 l 7 5 l -7 5" stroke="{TEAL}" stroke-width="2" fill="none"/>')
+parts.append(f'<path d="M 935 207 V 227 H 60 V 415" stroke="{TEAL}" stroke-width="2" fill="none"/>')
+for index, band in enumerate(["HIGH 0/1", "MID 2/3", "LOW 4/5"]):
+    y = 240 + index * 75
+    parts.append(f'<path d="M 60 {y+29} H 85" stroke="{TEAL}" stroke-width="2"/>')
+    parts.append(f'<rect x="85" y="{y}" width="1015" height="58" rx="10" fill="{PANEL}"/>')
+    parts += [text(102, y+36, band, 20, TEAL),
+              text(238, y+36, "Gain/polarity → PEQ → limiter → delay → ceiling guard → mute → meter", 19)]
+parts += [text(40, 485, "Six-channel WAV or explicit physical map; unmapped logical outputs still process.", 19),
+          text(40, 525, "PLANNED: feedback notches / subharmonic synthesis / setup mic / RTA / AutoEQ", 18, AMBER),
+          text(40, 558, "One separate setup mic is planned. Eight-point positional RTA remains future scope.", 17, MUTED),
+          text(40, 600, "Controller prepares edits; bounded DSP applies them. Storage and UI stay outside render.", 17, MUTED)]
+(OUT / "signal-flow.svg").write_text(svg(1140, 630, "SHR PA implemented 2-input 6-output signal path",
+    "Input meters, source mode, gain, GEQ, input PEQ, compressor, delay and crossover feed three stereo output pairs. Each pair has gain, polarity, PEQ, limiter, delay, ceiling guard, mutes and meters. Feedback, synthesis and microphone analysis are labelled planned.", "".join(parts)))
 
 binary = Path(sys.argv[1] if len(sys.argv) > 1 else ROOT / "target/release/shr-pa").resolve()
 lines = subprocess.check_output([binary, "--snapshot"], text=True).splitlines()
