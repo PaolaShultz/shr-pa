@@ -2,7 +2,7 @@
 use crate::{
     config::Config,
     dsp::Engine,
-    offline::{Generator, Result, Signal},
+    offline::{Generator, GeneratorLevel, Result, Signal},
 };
 use alsa::{
     Direction, ValueOr,
@@ -346,6 +346,7 @@ pub struct LiveOptions<'a> {
     pub map: Mapping,
     pub seconds: f64,
     pub signal: Option<Signal>,
+    pub generator_level: Option<GeneratorLevel>,
 }
 pub fn run(c: Config, options: LiveOptions<'_>, shared: &Shared) -> Result<LiveReport> {
     c.validate()?;
@@ -353,10 +354,20 @@ pub fn run(c: Config, options: LiveOptions<'_>, shared: &Shared) -> Result<LiveR
     if !options.seconds.is_finite() || !(0.01..=86400.).contains(&options.seconds) {
         return Err("live duration must be 0.01..86400 seconds".into());
     }
+    if options.generator_level.is_some() && options.signal.is_none() {
+        return Err("generator level requires --signal".into());
+    }
     let total = (options.seconds * c.sample_rate as f64).round() as u64;
     let mut generator = options
         .signal
-        .map(|s| Generator::new(s, c.sample_rate, total))
+        .map(|s| {
+            Generator::with_level(
+                s,
+                c.sample_rate,
+                total,
+                options.generator_level.unwrap_or_default(),
+            )
+        })
         .transpose()?;
     let (capture, cn) = open(
         options.capture,

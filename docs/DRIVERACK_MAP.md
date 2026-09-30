@@ -189,9 +189,10 @@ and D10 output alignment delay, plus
 initial D11/O01/O02/O04/O05 controls and presets. C04 remains partial because
 the other planned modules are absent. M03 has deterministic white and pink noise
 and other bench sources; [pink-source evidence](verification/0008-pink-noise.md)
-covers bounded generation, spectrum and offline/null integration. Adjustable
-generator level, runtime off/on with capture restoration and measurement workflows
-remain pending.
+covers bounded generation, spectrum and offline/null integration. Session-start
+generator level selection (−60…0 dBFS peak bound) is now implemented with
+[level evidence](verification/0009-generator-level.md). In-session level edits,
+runtime off/on with capture restoration and measurement workflows remain pending.
 Live transactions, filter/delay transitions and compact module controls extend
 D11/O01/O04/O05; see [new evidence](verification/0004-live-controls.md).
 The [preset/EQ slice](verification/0005-preset-library.md) extends D01–D03/D11

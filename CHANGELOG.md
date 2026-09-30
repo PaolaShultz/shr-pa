@@ -5,8 +5,10 @@
 - M03: deterministic, bounded pink noise for six-output offline renders and
   explicitly requested live sessions (`pink` / `--signal=pink`). Spectral and
   software-null checks are recorded in [0008](docs/verification/0008-pink-noise.md).
-  Generator level and runtime source switching remain pending. No application
-  or persistence version change.
+  Runtime source switching remains pending. No application or persistence version change.
+- M03: `--level=DBFS` selects a −60…0 dBFS generator peak bound for offline
+  renders and explicit live sources; default remains −20 dBFS. The level is
+  session-only and rejects WAV/capture-only use. See [0009](docs/verification/0009-generator-level.md).
 
 ## 0.2.0-alpha.1 — “0.2 alpha” — 2026-09-30
 

@@ -204,6 +204,7 @@ fn software_null_pcm_cancel_before_start_does_not_wait_for_capture() {
             map: Mapping::parse(2, 2, "0,1", "0,1,-,-,-,-").unwrap(),
             seconds: 1.,
             signal: None,
+            generator_level: None,
         },
         &shared,
     )

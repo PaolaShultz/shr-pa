@@ -34,8 +34,29 @@ impl Signal {
         })
     }
 }
+/// Runtime-only source peak bound in dBFS, before program processing.
+/// Noise RMS and the peak of a finite noise record are lower than this bound.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct GeneratorLevel(f64);
+impl GeneratorLevel {
+    pub fn new(dbfs: f64) -> Result<Self> {
+        if !dbfs.is_finite() || !(-60. ..=0.).contains(&dbfs) {
+            return Err("generator level must be finite and -60..0 dBFS".into());
+        }
+        Ok(Self(dbfs))
+    }
+    pub fn dbfs(self) -> f64 {
+        self.0
+    }
+}
+impl Default for GeneratorLevel {
+    fn default() -> Self {
+        Self(-20.)
+    }
+}
 pub struct Generator {
     signal: Signal,
+    level_scale: f64,
     rate: u32,
     frame: u64,
     total: u64,
@@ -76,6 +97,14 @@ impl Pink {
 }
 impl Generator {
     pub fn new(signal: Signal, rate: u32, total: u64) -> Result<Self> {
+        Self::with_level(signal, rate, total, GeneratorLevel::default())
+    }
+    pub fn with_level(
+        signal: Signal,
+        rate: u32,
+        total: u64,
+        level: GeneratorLevel,
+    ) -> Result<Self> {
         if rate == 0
             || total == 0
             || matches!(signal, Signal::Sine(hz) if !hz.is_finite() || hz <= 0. || hz >= rate as f64/2.)
@@ -84,6 +113,8 @@ impl Generator {
         }
         let mut generator = Self {
             signal,
+            // Preserve the existing -20 dBFS samples exactly at the default.
+            level_scale: 10_f64.powf((level.dbfs() + 20.) / 20.),
             rate,
             frame: 0,
             total,
@@ -122,7 +153,7 @@ impl Generator {
                 }
                 Signal::Pink => self.pink.next(&mut self.random),
             };
-            *frame = [x as f32; 2];
+            *frame = [(x * self.level_scale) as f32; 2];
             self.frame += 1;
         }
     }
@@ -140,6 +171,16 @@ pub fn render(
     destination: impl AsRef<Path>,
     seconds: f64,
 ) -> Result<RenderReport> {
+    render_with_level(c, source, destination, seconds, None)
+}
+/// An explicit level applies only to generated sources, never to input WAV audio.
+pub fn render_with_level(
+    c: Config,
+    source: &str,
+    destination: impl AsRef<Path>,
+    seconds: f64,
+    level: Option<GeneratorLevel>,
+) -> Result<RenderReport> {
     c.validate()?;
     if !seconds.is_finite() || !(0.001..=3600.).contains(&seconds) {
         return Err("duration must be 0.001..3600 seconds".into());
@@ -147,8 +188,11 @@ pub fn render(
     let total = (seconds * c.sample_rate as f64).round() as u64;
     let mut generator = Signal::parse(source)
         .ok()
-        .map(|s| Generator::new(s, c.sample_rate, total))
+        .map(|s| Generator::with_level(s, c.sample_rate, total, level.unwrap_or_default()))
         .transpose()?;
+    if level.is_some() && generator.is_none() {
+        return Err("generator level requires a generated source, not a WAV path".into());
+    }
     let mut reader = if generator.is_none() {
         Some(hound::WavReader::open(source)?)
     } else {

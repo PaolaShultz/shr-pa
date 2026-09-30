@@ -23,7 +23,7 @@ with tempfile.TemporaryDirectory(prefix='shr-pa-controls-') as folder:
     master, slave = pty.openpty()
     original = termios.tcgetattr(slave)
     fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack('HHHH', 13, 40, 0, 0))
-    process = subprocess.Popen([binary, 'live', str(preset), 'null', 'null', '2', '2', '0,1', '0,1,-,-,-,-', '86400', '--ui', '--signal=noise'], stdin=slave, stdout=slave, stderr=slave)
+    process = subprocess.Popen([binary, 'live', str(preset), 'null', 'null', '2', '2', '0,1', '0,1,-,-,-,-', '86400', '--ui', '--signal=noise', '--level=-30'], stdin=slave, stdout=slave, stderr=slave)
     output = bytearray()
     def until(pattern):
         deadline = time.monotonic() + 8

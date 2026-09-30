@@ -373,7 +373,22 @@ existing fixed-seed xorshift generator, centered at zero. Integer accumulation
 is exact and bounded. The sum of 17 terms is scaled by `0.1 / (17 * 2^23)`,
 giving a 0.1 peak bound before f32 rounding without clipping or normalization
 based on a future signal peak. RMS is lower and is not calibrated to −20 dBFS.
-The existing white source retains its sequence and level.
+The existing white source retains its sequence and default level.
+
+`--level=DBFS` selects a finite −60…0 dBFS peak bound for any generated source,
+including white/pink, sine, sweep and impulse. Silence remains zero. The default
+is −20 dBFS and preserves previous samples exactly. A constant
+`10^((DBFS + 20)/20)` scales the existing source in f64 before conversion to f32;
+the source bound is `10^(DBFS/20)` subject to f32 rounding. This is neither an RMS
+calibration nor a promised peak of a finite noise record. The scale is prepared
+once, with one multiplication per sample and no change to sequence or stereo pairing.
+
+Level belongs to the invocation, outside Config/library/working state. It is
+selected before rendering/streaming and requires a generated source; WAV input
+and capture-only live sessions reject it before output creation or device open.
+Input gain, EQ, dynamics and crossover still follow this insertion point, so
+processed output levels can differ. The output limiter and mute behavior remain
+in force even at a 0 dBFS source setting. In-session level editing is pending.
 
 Storage is fixed; each sample needs at most two PRNG updates and one row update.
 No allocation, filtering coefficient design, locks or I/O occurs in generation.
@@ -393,7 +408,7 @@ full-audible-band guarantee at every sample rate. Block/rate tests cover
 Sources are runtime-only and require an explicit command. Session shutdown uses
 the existing mute ramp; a fault terminates streaming and requires restart. No
 preset or working recovery starts a source. `Generator::fill` itself continues
-when called; the renderer/transport owns session duration and cleanup. Adjustable
-source level, runtime on/off with capture restoration, setup mic, RTA and automatic
+when called; the renderer/transport owns session duration and cleanup. In-session
+level edits, runtime on/off with capture restoration, setup mic, RTA and automatic
 measurement remain pending. M03 is partial; no proprietary PA2 noise equivalence
 or new physical measurements are claimed.

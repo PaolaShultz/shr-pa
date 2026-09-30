@@ -161,3 +161,195 @@ fn pink_cli_render_and_explicit_null_streaming_preserve_startup_mutes() {
     }
     std::fs::remove_dir_all(dir).unwrap();
 }
+
+#[test]
+fn explicit_generator_level_reaches_all_six_outputs_offline_and_live() {
+    let dir = std::env::temp_dir().join(format!("shr-pa-level-cli-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let preset = dir.join("preset.json");
+    let wav = dir.join("level.wav");
+    let p = preset.to_str().unwrap();
+    let c = shr_pa::config::Config {
+        layout: shr_pa::config::Layout::SixFullRange,
+        ..Default::default()
+    };
+    c.save(&preset).unwrap();
+    let bytes = std::fs::read(&preset).unwrap();
+    for db in ["-60", "-20", "0"] {
+        let option = format!("--level={db}");
+        let result = run(&[
+            "render",
+            p,
+            "sine:12000",
+            wav.to_str().unwrap(),
+            "0.031",
+            &option,
+            "--unmute",
+        ]);
+        assert!(result.status.success(), "{result:?}");
+        let samples: Vec<_> = hound::WavReader::open(&wav)
+            .unwrap()
+            .samples::<f32>()
+            .map(Result::unwrap)
+            .collect();
+        assert_eq!(samples.len(), 1488 * 6);
+        let expected = (10_f64.powf(db.parse::<f64>().unwrap() / 20.) as f32)
+            .min(10_f64.powf(-1. / 20.) as f32);
+        for ch in 0..6 {
+            let peak = samples
+                .iter()
+                .skip(ch)
+                .step_by(6)
+                .copied()
+                .map(f32::abs)
+                .fold(0., f32::max);
+            assert!((peak - expected).abs() < 1e-6, "{db}: {peak} != {expected}");
+        }
+        for unmute in [false, true] {
+            let mut args = vec![
+                "live",
+                p,
+                "null",
+                "null",
+                "2",
+                "2",
+                "0,1",
+                "0,1,-,-,-,-",
+                "0.03",
+                "--signal=sine:12000",
+                &option,
+            ];
+            if unmute {
+                args.push("--unmute");
+            }
+            let result = run(&args);
+            assert!(result.status.success(), "{result:?}");
+            let report = String::from_utf8(result.stdout).unwrap();
+            assert!(report.contains("fault: None"), "{report}");
+            let peaks = report
+                .split("output_peaks: [")
+                .nth(1)
+                .unwrap()
+                .split(']')
+                .next()
+                .unwrap();
+            for peak in peaks.split(',') {
+                let peak: f32 = peak.trim().parse().unwrap();
+                assert!(
+                    (peak - if unmute { expected } else { 0. }).abs() < 1e-6,
+                    "{report}"
+                );
+            }
+        }
+    }
+    assert_eq!(std::fs::read(&preset).unwrap(), bytes);
+    assert!(!dir.join(".shr-pa").exists());
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
+fn bad_or_inapplicable_levels_reject_before_output_or_device_open() {
+    let dir = std::env::temp_dir().join(format!("shr-pa-bad-level-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let preset = dir.join("preset.json");
+    let wav = dir.join("preserved.wav");
+    let p = preset.to_str().unwrap();
+    shr_pa::config::Config::default().save(&preset).unwrap();
+    std::fs::write(&wav, b"existing destination").unwrap();
+    for option in [
+        "--level=NaN",
+        "--level=inf",
+        "--level=-inf",
+        "--level=-60.1",
+        "--level=0.1",
+        "--level=",
+        "--level=bad",
+    ] {
+        assert!(
+            !run(&[
+                "render",
+                p,
+                "pink",
+                wav.to_str().unwrap(),
+                "0.03",
+                "--unmute",
+                option
+            ])
+            .status
+            .success()
+        );
+        let result = run(&[
+            "live",
+            p,
+            "hw:NONEXISTENT",
+            "hw:NONEXISTENT",
+            "2",
+            "2",
+            "0,1",
+            "0,1,-,-,-,-",
+            "0.03",
+            "--signal=pink",
+            option,
+        ]);
+        assert!(!result.status.success());
+        assert!(
+            !String::from_utf8_lossy(&result.stderr).contains("ALSA"),
+            "{result:?}"
+        );
+    }
+    let result = run(&[
+        "live",
+        p,
+        "hw:NONEXISTENT",
+        "hw:NONEXISTENT",
+        "2",
+        "2",
+        "0,1",
+        "0,1,-,-,-,-",
+        "0.03",
+        "--level=-20",
+    ]);
+    assert!(!result.status.success());
+    assert!(String::from_utf8_lossy(&result.stderr).contains("requires --signal"));
+    let result = run(&[
+        "render",
+        p,
+        "missing.wav",
+        wav.to_str().unwrap(),
+        "0.03",
+        "--unmute",
+        "--level=-20",
+    ]);
+    assert!(!result.status.success());
+    assert!(String::from_utf8_lossy(&result.stderr).contains("not a WAV path"));
+    assert!(
+        !run(&[
+            "render",
+            p,
+            "pink",
+            wav.to_str().unwrap(),
+            "0.03",
+            "--level=-20",
+            "--level=-30"
+        ])
+        .status
+        .success()
+    );
+    let result = run(&[
+        "live",
+        p,
+        "hw:NONEXISTENT",
+        "hw:NONEXISTENT",
+        "2",
+        "2",
+        "0,1",
+        "0,1,-,-,-,-",
+        "0.03",
+        "--signal=pink",
+        "--level=-20",
+        "--level=-30",
+    ]);
+    assert!(String::from_utf8_lossy(&result.stderr).contains("duplicate generator level"));
+    assert_eq!(std::fs::read(&wav).unwrap(), b"existing destination");
+    std::fs::remove_dir_all(dir).unwrap();
+}

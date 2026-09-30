@@ -77,3 +77,59 @@ fn pink_has_approximately_equal_octave_power_and_white_does_not() {
     let rise_db = 10. * (white[8] / white[0]).log10();
     assert!((21. ..27.).contains(&rise_db), "white rise={rise_db}");
 }
+
+#[test]
+fn generator_levels_validate_and_scale_all_sources_without_changing_sequence() {
+    use shr_pa::offline::GeneratorLevel;
+    for db in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY, -60.01, 0.01] {
+        assert!(GeneratorLevel::new(db).is_err());
+    }
+    assert_eq!(GeneratorLevel::default().dbfs(), -20.);
+    for signal in [
+        Signal::Silence,
+        Signal::Impulse,
+        Signal::Sine(1000.),
+        Signal::Sweep,
+        Signal::Noise,
+        Signal::Pink,
+    ] {
+        let mut reference = vec![[0.; 2]; 65539];
+        Generator::new(signal, 48000, reference.len() as u64)
+            .unwrap()
+            .fill(&mut reference);
+        for db in [-60., -37.5, -20., 0.] {
+            let level = GeneratorLevel::new(db).unwrap();
+            let mut g =
+                Generator::with_level(signal, 48000, reference.len() as u64, level).unwrap();
+            let mut actual = vec![[0.; 2]; reference.len()];
+            g.fill(&mut []);
+            for chunk in actual.chunks_mut(127) {
+                g.fill(chunk);
+            }
+            let scale = 10_f64.powf((db + 20.) / 20.);
+            let bound = 10_f64.powf(db / 20.) as f32;
+            for (got, base) in actual.iter().zip(&reference) {
+                assert_eq!(got[0], got[1]);
+                assert!(got[0].is_finite() && got[0].abs() <= bound);
+                let expected = (base[0] as f64 * scale) as f32;
+                assert!((got[0] - expected).abs() <= bound * 2e-7);
+                if db == -20. {
+                    assert_eq!(got, base);
+                }
+            }
+        }
+    }
+    // Peak definition has an independent exact reference: a quarter-cycle sine.
+    for db in [-60., -20., 0.] {
+        let mut frames = [[0.; 2]; 2];
+        Generator::with_level(
+            Signal::Sine(12000.),
+            48000,
+            2,
+            GeneratorLevel::new(db).unwrap(),
+        )
+        .unwrap()
+        .fill(&mut frames);
+        assert_eq!(frames[1][0], 10_f64.powf(db / 20.) as f32);
+    }
+}

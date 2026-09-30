@@ -25,14 +25,25 @@ pub fn execute(args: &[String]) -> offline::Result<bool> {
                 c.version, c.layout, c.sample_rate, c.max_block
             );
         }
-        "render" if args.len() == 6 => {
-            if args[5] != "--unmute" {
+        "render" if (6..=7).contains(&args.len()) => {
+            let mut unmute = false;
+            let mut level = None;
+            for arg in &args[5..] {
+                if arg == "--unmute" && !unmute {
+                    unmute = true;
+                } else if let Some(value) = arg.strip_prefix("--level=") {
+                    parse_level(&mut level, value)?;
+                } else {
+                    return Err("unknown or duplicate render option".into());
+                }
+            }
+            if !unmute {
                 return Err("render requires explicit --unmute".into());
             }
             let c = Config::load(&args[1])?;
             println!(
                 "{:?}",
-                offline::render(c, &args[2], &args[3], args[4].parse()?)?
+                offline::render_with_level(c, &args[2], &args[3], args[4].parse()?, level)?
             );
         }
         "devices" if args.len() == 1 => {
@@ -55,7 +66,7 @@ pub fn execute(args: &[String]) -> offline::Result<bool> {
                 }
             }
         }
-        "live" if (9..=12).contains(&args.len()) => {
+        "live" if (9..=13).contains(&args.len()) => {
             let c = Config::load(&args[1])?;
             let map = Mapping::parse(args[4].parse()?, args[5].parse()?, &args[6], &args[7])?;
             let shared = Arc::new(Shared::default());
@@ -68,12 +79,15 @@ pub fn execute(args: &[String]) -> offline::Result<bool> {
                 signal_hook::flag::register(signal, stop.clone())?;
             }
             let mut signal = None;
+            let mut generator_level = None;
             let mut terminal = false;
             for arg in &args[9..] {
                 if arg == "--unmute" {
                     shared.mutes.store(0, Ordering::Relaxed);
                 } else if arg == "--ui" {
                     terminal = true;
+                } else if let Some(value) = arg.strip_prefix("--level=") {
+                    parse_level(&mut generator_level, value)?;
                 } else if let Some(s) = arg.strip_prefix("--signal=") {
                     signal = Some(offline::Signal::parse(s)?);
                 } else {
@@ -86,6 +100,7 @@ pub fn execute(args: &[String]) -> offline::Result<bool> {
                 map,
                 seconds: args[8].parse()?,
                 signal,
+                generator_level,
             };
             let result = std::thread::scope(|scope| {
                 let s = shared.clone();
@@ -119,4 +134,12 @@ pub fn execute(args: &[String]) -> offline::Result<bool> {
         _ => return Ok(false),
     }
     Ok(true)
+}
+
+fn parse_level(level: &mut Option<offline::GeneratorLevel>, value: &str) -> offline::Result<()> {
+    if level.is_some() {
+        return Err("duplicate generator level".into());
+    }
+    *level = Some(offline::GeneratorLevel::new(value.parse()?)?);
+    Ok(())
 }

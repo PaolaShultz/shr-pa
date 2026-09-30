@@ -14,6 +14,7 @@ current release state. [STATUS](../STATUS.md) summarizes today's implementation.
 | [0006 — crossover](0006-crossover.md), 2026-09-30 | Independent BW/LR edges, v3 processing/v2 envelopes; software-null only | Committed in `142db7f` |
 | [0007 — 0.2 alpha](0007-0.2-alpha.md), 2026-09-30 | Documentation/release audit and publication validation | Application `0.2.0-alpha.1` |
 | [0008 — pink generator](0008-pink-noise.md), 2026-09-30 | M03 deterministic pink source, spectrum, allocations and software-null integration | Application/schema versions unchanged |
+| [0009 — generator level](0009-generator-level.md), 2026-09-30 | M03 session-start source peak level, rejection, six-output scaling/limiting and software-null checks | Application/schema versions unchanged |
 
 Only 0003 contains successful physical audio trials. They do not qualify the
 later full workload, independent crossover controls or physical response. None

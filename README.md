@@ -16,7 +16,7 @@ summing, independent BW6–48/LR12–48 crossover edges, 31-band GEQ, bell/shelf
 stereo-linked compression, delays,
 gain/polarity, ramped mutes, linked peak limiters and meters.
 Six-channel offline WAV rendering works without an audio interface, including
-seeded white and pink noise sources. Direct ALSA
+seeded white and pink noise sources with explicit −60…0 dBFS generator levels. Direct ALSA
 runs selected logical outputs on the physical channels available today, with no
 implicit stereo mixdown.
 

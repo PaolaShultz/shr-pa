@@ -49,6 +49,9 @@ in independent mode and recovers the saved crossover after restart. See
 M03 pink generation adds bounded stereo/block/rate checks, an independent
 windowed spectral regression with a white-noise control, six-output WAV comparison,
 explicit muted/unmuted software-null runs and generation allocation counting.
+Generator level regressions cover finite/range validation, all source shapes,
+block-independent scaling and exact default preservation, CLI rejection before
+I/O, six-output levels/limiting, startup mutes and nondefault-level allocation counting.
 These short production tests run by default; they open no physical device.
 Add analysis isolation and automatic device reconnection regressions with those
 future features.

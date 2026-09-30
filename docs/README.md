@@ -22,7 +22,8 @@ software-null examples; hardware qualification is a separate activity.
 - [Validation](VALIDATION.md): normal production checks and opt-in research/hardware work.
 - [Release notes](../CHANGELOG.md) and [0.2 alpha verification](verification/0007-0.2-alpha.md).
 - [Evidence index](verification/README.md): all dated records and their scope.
-- [Pink generator verification](verification/0008-pink-noise.md): next M03 slice after 0.2 alpha.
+- [Pink generator verification](verification/0008-pink-noise.md): deterministic M03 source.
+- [Generator level verification](verification/0009-generator-level.md): session-start level selection.
 - [DriveRack function map](DRIVERACK_MAP.md): complete 42-ID PA2 target inventory.
 - [Roadmap](ROADMAP.md): feature groups, remaining requirements and exit criteria.
 - [Future scope](FUTURE.md): general routing, eight-point positional RTA and the

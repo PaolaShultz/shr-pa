@@ -229,14 +229,26 @@ preset rate; PCM integer and float input are supported. Rendering stops at EOF
 or the requested duration; append silence to the input to retain a complete
 filter/delay tail. Input and output files must differ. There is no resampling.
 
-Generators are deterministic, with a 0.1 (−20 dBFS) peak bound before processing;
+Generators are deterministic, with a default 0.1 (−20 dBFS) peak bound before processing;
 noise RMS and observed peaks are lower. The impulse has a 10 ms lead-in to clear
 the startup ramp. Sweep is logarithmic from 20 Hz to 0.4 × sample rate. `noise` is
 seeded white noise; `pink` approximates equal power per octave using 16 octave
 rows plus white noise. Both feed identical L/R samples. Pink noise has spectral
 ripple and finite-record mean variation; it is not calibrated measurement noise.
-See the [generator contract](DSP.md#test-generators-m03). Generator level is fixed;
-adjustable level and runtime switching back to capture remain pending.
+Select a source peak bound with `--level=DBFS` (finite −60…0, default −20):
+
+```sh
+"$SHR_PA_BIN" render "$SESSION/preset.json" pink "$SESSION/pink-quiet.wav" 2 --unmute --level=-40
+"$SHR_PA_BIN" live "$SESSION/preset.json" null null 2 2 0,1 0,1,-,-,-,- 1 --signal=pink --level=-40 --unmute
+```
+
+The option applies only to generated sources; WAV input and live capture without
+`--signal` reject it. It sets a peak bound before input gain/EQ/dynamics, not noise
+RMS or calibrated physical level. Sine/impulse peaks use the same dBFS convention.
+Source and level are session-only; saving or recovering processing never restores
+them. Choose the level when starting the command; in-session level changes and
+runtime switching back to capture remain pending. See the
+[generator contract](DSP.md#test-generators-m03).
 Timing reports measure just `Engine::render`, excluding WAV I/O and generation.
 
 ## Software-null streaming (no hardware)

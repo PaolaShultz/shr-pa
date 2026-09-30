@@ -156,9 +156,15 @@ fn pink_generation_and_six_output_processing_never_allocate_or_free() {
     use shr_pa::{
         config::Config,
         dsp::Engine,
-        offline::{Generator, Signal},
+        offline::{Generator, GeneratorLevel, Signal},
     };
-    let mut g = Generator::new(Signal::Pink, 48000, 131072).unwrap();
+    let mut g = Generator::with_level(
+        Signal::Pink,
+        48000,
+        131072,
+        GeneratorLevel::new(-7.5).unwrap(),
+    )
+    .unwrap();
     let mut engine = Engine::new(Config::default()).unwrap();
     let mut input = [[0.; 2]; 128];
     let mut output = [[0.; 6]; 128];
