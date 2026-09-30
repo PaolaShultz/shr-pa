@@ -3,7 +3,11 @@
 **Target architecture with an implemented first slice.**
 The actual processing/transport contracts are in [DSP](DSP.md) and [running](RUNNING.md).
 The diagram below includes still-planned feedback, bass synthesis and measurement.
-GEQ, bell/shelf PEQ and compression are implemented; see [DSP](DSP.md).
+GEQ, bell/shelf PEQ, compression and independent BW/LR crossover edges are
+implemented; see [DSP](DSP.md). Layout LR24 preserves the compensated three-way
+tree; independent mode uses fixed per-pair HP/LP cascades without a routing graph.
+Processing v3 and library/working v2 envelopes have explicit source-preserving
+migration, including EQ history and both working/saved baselines.
 The [function map](DRIVERACK_MAP.md) defines the PA2 baseline and the
 [roadmap](ROADMAP.md) its implementation sequence.
 
@@ -105,7 +109,12 @@ The first slice uses a validated fixed schema, atomic JSON save/load, runtime
 mutes outside presets and explicit restart on audio faults. Prepared transactions now support live parameter edits through a single atomic
 slot. Related edits begin together at block boundaries, with bounded transitions
 and preserved unrelated state. Topology edits/recalls use mute/reconfigure/resume.
-The rest of this section describes the longer-term target.
+The controller now also owns the 75-slot local library, immutable templates,
+EQ restore history and independent atomic working-state recovery. A library lock
+serializes local editors; corrupt or incompatible working files are retained and
+block further working writes until explicitly archived. Recovery is processing-only
+and startup-muted. See [persistence details](DSP.md#library-and-working-state).
+The rest of this section includes longer-term preferences, profiles and recovery targets.
 
 Use a fixed, versioned configuration schema. Presets contain processing, setup
 selections and profile references; mutes, RTA preferences and utility/access settings

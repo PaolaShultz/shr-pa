@@ -49,10 +49,14 @@ fn presets_roundtrip_reject_unknown_fields_and_preserve_old_file() {
     assert!(invalid.save(&path).is_err());
     assert_eq!(Config::load(&path).unwrap(), c);
     let mut value = serde_json::to_value(c).unwrap();
+    let mut missing = value.clone();
+    missing.as_object_mut().unwrap().remove("crossover");
+    std::fs::write(&path, serde_json::to_vec(&missing).unwrap()).unwrap();
+    assert!(Config::load(&path).is_err());
     value["version"] = 99.into();
     std::fs::write(&path, serde_json::to_vec(&value).unwrap()).unwrap();
     assert!(Config::load(&path).is_err());
-    value["version"] = 2.into();
+    value["version"] = 3.into();
     value["generator_active"] = true.into();
     std::fs::write(&path, serde_json::to_vec(&value).unwrap()).unwrap();
     assert!(Config::load(&path).is_err());

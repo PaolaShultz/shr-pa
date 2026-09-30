@@ -25,6 +25,10 @@ bell and shelf formulas. Zero dB is flat. Module details and transitions follow 
 
 ## Layouts and crossover
 
+Processing schema v3 makes the phase policy explicit. `crossover: "layout_lr24"`
+is the default and uses the original table below, including the compensated
+three-way tree. All six templates and migrated v1/v2 presets select this mode.
+
 Pairs are always high (0/1), mid (2/3), low (4/5).
 
 | Preset `layout` | High | Mid | Low |
@@ -37,8 +41,8 @@ Pairs are always high (0/1), mid (2/3), low (4/5).
 | `four_plus_subs` | HP(low) | HP(low), own pair processing | LP(low) |
 
 Mains+subs and bi-amped mains without subs share `two_way`; choose the split
-frequency for the application. The first `four_plus_subs` variant has mains
-high-passed; arbitrary independent edge bypass/overlap is still pending.
+frequency for the application. The default `four_plus_subs` has mains high-passed. Independent mode below
+allows bypassed mains edges and independent overlap/gaps.
 
 Every LR24 edge is two cascaded second-order Butterworth sections. A two-way
 LP+HP sum is unity magnitude with second-order all-pass phase. For three-way,
@@ -59,6 +63,63 @@ stereo bass and equal/flat pair processing; mono bass changes stereo sources.
 of bass summing. `mono_bass` uses `(processed_L + processed_R) / 2` for the low
 branch in crossover layouts. Correlated inputs retain their level; opposite
 polarity inputs cancel. It does not turn six full-range feeds into a bass system.
+
+### Independent edges (D08)
+
+`crossover: {"independent": [HIGH, MID, LOW]}` stores three pair objects. Each has
+required `hp` and `lp` objects with `bypass` (boolean), `hz`, `family`
+(`butterworth` or `linkwitz_riley`) and `slope` (dB/octave). Butterworth supports
+6, 12, 18, 24, 30, 36, 42, 48; LR supports 12, 24, 36, 48. Every edge, including
+bypassed/inactive ones, validates independently at 16 Hz to min(20 kHz, 0.45 ×
+rate). There is no ordering constraint between edges or pairs. Stored shortcut
+frequencies still require low < high; they do not control independent edges.
+
+Each pair receives direct processed program (or the existing mono-bass average
+for the low pair in crossover layouts), then HP, then LP. Bypass is identity,
+retaining the cutoff/family/slope for later use. Layouts still determine active
+outputs; inactive channels are explicitly silent. Layout edits in independent
+mode retain the stored edges. Physical channel mapping never changes processing.
+
+Selecting independent mode in the editor seeds LR24 edges from the layout:
+H=HP(high), M=HP(low)+LP(high), L=LP(low) for three-way; H=HP(low), L=LP(low) for
+two-way; four-plus-subs also seeds M=HP(low). Other edges start bypassed.
+**Independent three-way removes the shared HP(low) from H and AP(high) from L.**
+It has no automatic phase compensation. The mode is displayed before editing;
+changing modes uses mute/reconfigure and retains all gain, polarity, EQ, delays,
+dynamics and runtime mute choices. Returning to layout mode discards custom
+edges and reinstates the original tree. Entering independent again reseeds edges.
+Save a slot first to retain a custom crossover across these deliberate resets.
+
+Split shortcuts (`[]`, `{}` or the split editor fields) work only in layout mode;
+in independent mode they reject with a mode instruction. They never rewrite a
+custom edge implicitly. Edge fields require selecting independent mode first.
+
+Butterworth uses the bilinear transform of the normalized order-N analog
+prototype, with prewarped cutoff. Odd orders include one first-order section.
+LR doubles the corresponding half-order Butterworth cascade. Butterworth edges
+are −3.0103 dB at cutoff; LR edges are −6.0206 dB. Slopes are asymptotic analog
+slopes; digital frequency warping steepens the response near Nyquist.
+
+| Matched two-way HP/LP at the same cutoff | Required relative polarity for unity magnitude |
+| --- | --- |
+| LR12, LR36 | Invert one pair manually |
+| LR24, LR48 | Same polarity |
+| BW6, BW18, BW30, BW42 | Same polarity gives unity magnitude; opposite also preserves magnitude with different phase |
+| BW12, BW24, BW36, BW48 | Neither polarity gives a flat sum |
+
+These guarantees assume coherent input, only the two matched complementary edges,
+equal gain, flat EQ, equal delay and no dynamics reduction. Four-plus-subs follows
+the same rule for **one** mains pair plus the sub pair; adding both identical mains
+pairs doubles the mains contribution. Layout LR24 three-way retains the original
+AP(low) × AP(high) guarantee. Independent three-way, cascaded bandpass edges,
+unmatched frequencies/slopes, bypass combinations, overlaps/gaps, arbitrary
+polarity/gain/EQ/delay changes and mono-bass stereo mixtures have no flat-sum
+guarantee. No gain or polarity is changed automatically to hide a difference.
+
+`tests/crossover.rs` multiplies analog prototype poles independently, then compares
+impulse DFT magnitude and phase for every order and both edges at 44.1/48/96 kHz.
+It also checks warped stopband slopes, cutoff levels, bypass, extreme frequencies,
+stereo pairing, layout silence, mono bass and matched sums with explicit polarity.
 
 ## Delays, mutes, meters and faults
 
@@ -118,7 +179,8 @@ settings. `linked=true` uses the stored left settings for both channels, with
 independent state; unlinking restores the retained right settings. Bands above
 0.45 × sample rate become identity sections, retaining their stored values.
 They are not folded or moved to lower frequencies. GEQ defaults bypassed/flat.
-Tonal curve presets, flatten/restore history and automatic EQ remain pending.
+Manual/flat and original tonal curves are controller operations; see below.
+Automatic EQ remains pending.
 
 Input PEQ has eight independent sections per channel; output PEQ has eight
 sections per stereo pair, with separate channel state. `kind` is `bell`,
@@ -155,7 +217,7 @@ output limiters remain active and are the sample-ceiling protection.
 
 ## Transactions and transitions
 
-`Prepared::new` validates an entire v2 snapshot and computes all EQ/crossover
+`Prepared::new` validates an entire v3 snapshot and computes all EQ/crossover
 coefficients, gains, taps and time coefficients on the controller. `Handoff`
 contains one fixed-size Copy slot with atomic ownership. Publishing to an occupied
 slot returns explicit busy. The terminal retains one latest desired snapshot,
@@ -183,11 +245,16 @@ an active crossfade. These transitions may produce audible tonal/phase changes
 or temporary cancellation; transparent arbitrary EQ/delay edits are not claimed.
 
 Worst temporary filter work is two evaluations per changed section. With all
-modules active, the three-way chain has 126 EQ sections and 18 crossover/all-pass
-sections; at most 288 biquad evaluations per stereo frame during a complete edit.
+modules active, layout three-way has 126 EQ and 18 crossover/all-pass sections.
+Independent mode has 48 fixed crossover slots (four per edge per channel), for
+a maximum of 348 filter evaluations per stereo frame during a complete edit.
+Unused slots are identity. Both mode banks have fixed storage; only one mode
+processes. Independent coefficients are checked for finite values and strict
+second-order stability during preparation. Mode switches reset only crossover
+history under mute; individual edge edits retain all unchanged section state.
 Each delay uses at most two reads. Additional storage/work is fixed at startup.
 
-Layout, input-mode, mono-bass, crossover-frequency changes and explicit recall
+Layout, input-mode, mono-bass, crossover mode/edge/frequency changes and explicit recall
 first ramp outputs to zero over 5 ms. At the first block boundary with all ramps
 zero, install the transaction, run its 20 ms transitions while held muted, then
 resume the current runtime mute targets over 5 ms. The terminal's preset recall
@@ -197,3 +264,72 @@ rejected in the terminal with a retry message. Rate/block changes require restar
 Fault latches take precedence over all transactions, recalls and unmute requests;
 no transaction can clear a fault. Transport faults still stop both streams and
 require explicit restart; automatic reconnection remains unimplemented.
+
+
+## Library and working state
+
+`library` owns controller-only persistence and EQ history. Standalone Config JSON
+is **v3**. Library presets and working records use **v2 envelopes**, with strict
+required fields and unknown-field rejection. They embed validated v3 snapshots;
+there is no implicit reinterpretation of legacy presets. `migrate OLD NEW` accepts
+v1/v2 standalone processing or v1 slot/working envelopes. It converts both saved
+and working processing snapshots, preserves EQ history and metadata, validates
+the entire result and publishes to a new destination without replacing existing
+files (including symlinks). Sources remain untouched. Legacy recovery is blocked
+until explicitly migrated; see the [migration procedure](RUNNING.md#existing-presets-and-library-migration). To put an existing JSON
+preset in the library, import with `l`, select a user slot and save. The import
+initializes manual EQ history from the imported gains. Export writes effective
+processing only; full restore history stays in library/working envelopes.
+
+Each user slot has its own `U1.json`…`U75.json`. Templates are compiled immutable
+values. `working.json` holds current processing, GEQ mode/manual arrays, per-scope
+PEQ restore points, selected slot, active baseline ID, and saved processing/EQ
+baseline for the modified comparison. No transport/device identity, mute mask,
+fault state or generator intent is serialized. Recovery compares rate and requested
+block size against startup configuration before installation. It cannot clear a
+fault; every new engine/session still starts muted.
+
+Writes use a unique create-new temporary file, file sync, rename, and directory
+sync on the same filesystem. The library holds an OS file lock for the editor's
+lifetime, released on exit/crash; a competing editor cannot write it. External
+manual file changes while editing are not a supported multi-writer protocol.
+Each file replacement is atomic; slot save and working checkpoint are separate
+commits. A crash between them may recover an older working baseline, while the
+new saved slot remains available. Temporary files never take precedence over the
+last committed record. Invalid recovery blocks automatic replacement until an
+explicit archive/reset. Archive and subsequent checkpoint are separate operations;
+a crash between them leaves the rejected bytes in the archive. Storage durability
+depends on the filesystem/device honoring sync; power-cut hardware was not tested.
+
+GEQ curves set the same 31 center gains on both channels, retaining the existing
+link and enable settings. They are original starting points, not room correction,
+PA2 coefficients or measured speaker profiles:
+
+| Mode | Center gains |
+| --- | --- |
+| Flat | 0 dB at every center |
+| Speech | −3 dB below 125 Hz; +1.5 dB from 1–4 kHz inclusive; 0 elsewhere |
+| Warm | +1.5 dB through 160 Hz; −1.5 dB from 4 kHz; 0 elsewhere |
+| Gentle | `clamp(-0.5 * log2(hz / 1000), -2, 2)` dB |
+
+Switching away from manual captures both channel arrays once; switching among
+curves/flat retains that capture. Manual restores both arrays exactly, including
+the right array retained while linked. A band-gain edit while auditioning first
+restores manual settings and then edits the selected band. Enable/link edits do
+not change the curve or the retained manual gains. The normal GEQ bypass and
+unavailable-band rules still apply. Curves are section gains; the cascaded response
+is not an interpolated target. No automatic gain compensation is added.
+
+PEQ flatten affects gains only for the explicitly named input channel or output
+pair. It stores all eight sections, retaining frequency/type/Q/S for restoration.
+Repeated flatten does not replace the original restore point. Restore consumes
+that point; a later flatten starts a new one. Edits made while flat are replaced
+by an explicit restore. Module bypass, other channels/pairs, gains, delays,
+crossover and dynamics settings are retained. Automatic/manual AutoEQ history
+remains future work.
+
+These operations materialize ordinary validated Config snapshots outside audio.
+They use the same one-slot handoff, latest-desired retry, 20 ms transitions,
+recall mute sequence and fault precedence as existing controls. No library or
+history object crosses into render. Unchanged filters, delays and dynamics keep
+their existing DSP state. Metadata-only changes require no audio transaction.

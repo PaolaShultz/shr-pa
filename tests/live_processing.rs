@@ -289,6 +289,7 @@ fn explicit_legacy_migration_preserves_meanings_and_rejects_unknowns() {
     c.input_eq[0][2].db = 4.;
     let mut v = serde_json::to_value(c).unwrap();
     v["version"] = 1.into();
+    v.as_object_mut().unwrap().remove("crossover");
     for k in ["geq", "compressor", "input_eq_enabled"] {
         v.as_object_mut().unwrap().remove(k);
     }
@@ -317,7 +318,8 @@ fn explicit_legacy_migration_preserves_meanings_and_rejects_unknowns() {
     assert_eq!(Config::load(&new).unwrap(), c);
     v["mystery"] = true.into();
     std::fs::write(&old, serde_json::to_vec(&v).unwrap()).unwrap();
-    assert!(shr_pa::config::migrate_v1(&old, &new).is_err());
+    assert!(shr_pa::config::migrate_v1(&old, root.join("rejected.json")).is_err());
+    assert!(!root.join("rejected.json").exists());
     assert_eq!(Config::load(&new).unwrap(), c);
     std::fs::remove_dir_all(root).unwrap();
 }

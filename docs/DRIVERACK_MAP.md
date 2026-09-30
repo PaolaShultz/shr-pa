@@ -70,7 +70,7 @@ vendor speaker tunings or assuming their crossover frequencies suit our speakers
 | D05 — subharmonic synthesis; pp. 35–36 | Mono-derived bass generation mixed into stereo dry audio, two low-frequency regions, overall and separate band amounts, bypass and three effect meters. Implement an original octave-down generator. | Expected subharmonic energy, no DC, bounded output, stereo dry preservation, artifact listening tests. P6 |
 | D06 — input compression; pp. 37–38 | Broadband stereo-linked compressor with threshold, ratio, makeup gain, adjustable hard/soft knee, bypass, gain-reduction and threshold-region meters. Choose and document envelope timing rather than inventing dbx timing constants. | Static transfer, knee continuity, bursts, stereo-image stability and bypass transitions. P3 |
 | D07 — input/backline delay; pp. 39–40 | Delay the complete stereo program before crossover; enable and time/distance entry. Keep it separate from driver alignment. | Sample timing, unit conversion, bypass and transition behavior. P2 |
-| D08 — crossover; pp. 41–42 | Per-pair high-pass and low-pass with independent frequencies, bypassed edge options, gain and polarity. **LR24 first and default.** Plan the other documented Butterworth/LR slopes as remaining compatibility work. Allow intentional overlap/full-range settings. | Each edge's response, polarity, bypass, and complete two/three-way sums. P2/P3 |
+| D08 — crossover; pp. 41–42 | Per-pair high-pass and low-pass with independent frequencies, bypassed edge options, gain and polarity. **LR24 first and default.** BW6–48 and LR12/24/36/48 are implemented in independent mode; retain the original layout phase policy as a separate default mode. Allow intentional overlap/full-range settings. | Each edge's response, polarity, bypass, and complete two/three-way sums. P2/P3 |
 | D09 — output limiting; pp. 43–44 | Three stereo limiter groups, bypass, threshold and knee controls, activity and gain-reduction meters. Calibrate thresholds against the actual interface/amplifier chain. | Burst overshoot, sustained overload, release, pair linking and threshold calibration. P2/P3 |
 | D10 — driver alignment; pp. 39–40 | Separate output delay per band pair, time/distance entry and bypass. Never replace it with the input delay. | Relative alignment across all six outputs, buffer wrap and click-free changes. P2 |
 | D11 — processing state; pp. 24, 27–44 | Direct module access; select active band; edit values; explicit bypass; visible current values. Preserve state through unrelated edits and preset preview. | Command/UI consistency, finite/range validation and state restoration. P3/P7 |
@@ -89,7 +89,7 @@ proprietary coefficient curves, detector thresholds or time constants.
 | Input delay | 0–100 ms; nearest-sample resolution, with ms/metres/feet display |
 | Output delay | 0–10 ms per pair; nearest-sample resolution, with the same units |
 | Crossover | 16 Hz–20 kHz or edge disabled; band gain −60 to +20 dB; normal/inverted polarity |
-| Remaining crossover slopes | Butterworth 6 through 48 dB/octave in steps of 6; LR 12, 24, 36 and 48 dB/octave |
+| Implemented crossover slopes | Butterworth 6 through 48 dB/octave in steps of 6; LR 12, 24, 36 and 48 dB/octave |
 | Feedback filters | 12 total positions; fixed allocation 0–12; live-lift timer 5 seconds–60 minutes |
 | Bass synthesis | 24–36 Hz and 36–56 Hz output regions; each amount and overall amount 0–100% |
 
@@ -176,14 +176,20 @@ Warranty/service terms and vendor support contacts are documentation, not DSP or
 control functions to implement.
 
 Rows retain their complete target scope. The first working slice covers C01 and
-most C02/C03, D01 linked/separate 31-band GEQ with bypass (curves pending),
-D02/D03 bell/shelf PEQ with bypass (restore/PA2 slope units pending), D06 linked
-compressor with hard/soft knee and explicit timing, D07/D08 LR24/D09 hard sample limiter/D10,
+most C02/C03, D01 linked/separate 31-band GEQ with bypass and original manual/flat/tonal curves,
+D02/D03 bell/shelf PEQ with bypass and scoped flatten/restore (automatic EQ history/PA2 slope units pending), D06 linked
+compressor with hard/soft knee and explicit timing, D07/D08 independent BW/LR edges plus default compensated LR24/D09 hard sample limiter/D10,
 and initial D11/O01/O02/O04/O05 controls and presets. C04 remains partial because
 the other planned modules are absent. M03 has deterministic white noise and
 other bench sources; pink noise and measurement workflows remain pending.
 Live transactions, filter/delay transitions and compact module controls extend
 D11/O01/O04/O05; see [new evidence](verification/0004-live-controls.md).
+The [preset/EQ slice](verification/0005-preset-library.md) extends D01–D03/D11
+and O04/O05 with 75 named user slots, six immutable templates, explicit copy/save,
+select-before-recall, independent working recovery and preserved manual EQ state.
+Future profile/setup selections, automatic input-EQ sources, utility preferences
+and remote writers remain pending. D08 now has offline response/phase, migration and software-null live-control
+[evidence](verification/0006-crossover.md); physical response remains unmeasured.
 No broader row is claimed complete. H01 has short stereo AudioBox transport
 evidence; six-channel physical qualification and calibration remain pending.
 See [DSP contract](DSP.md), [status](STATUS.md),

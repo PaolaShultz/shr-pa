@@ -1,5 +1,5 @@
 //! Synchronous bounded 2 x 6 DSP. Construction is the only allocating operation.
-use crate::config::{Config, EqBand, EqKind, GEQ_HZ, InputMode, Layout};
+use crate::config::{Config, Crossover, Edge, EqBand, EqKind, Family, GEQ_HZ, InputMode, Layout};
 use std::f64::consts::{FRAC_1_SQRT_2, PI};
 
 pub const OUTPUT_NAMES: [&str; 6] = ["H-L", "H-R", "M-L", "M-R", "L-L", "L-R"];
@@ -18,15 +18,56 @@ impl Biquad {
         }
     }
     fn edge(hz: f64, rate: u32, high: bool) -> Self {
+        Self::second_order(hz, rate, high, FRAC_1_SQRT_2)
+    }
+    fn second_order(hz: f64, rate: u32, high: bool, q: f64) -> Self {
         let w = 2. * PI * hz / rate as f64;
         let c = w.cos();
-        let alpha = w.sin() / (2. * FRAC_1_SQRT_2);
+        let alpha = w.sin() / (2. * q);
         let b = if high {
             [(1. + c) / 2., -(1. + c), (1. + c) / 2.]
         } else {
             [(1. - c) / 2., 1. - c, (1. - c) / 2.]
         };
         Self::normalized(b, [1. + alpha, -2. * c, 1. - alpha])
+    }
+    fn identity() -> Self {
+        Self::normalized([1., 0., 0.], [1., 0., 0.])
+    }
+    /// Bilinear transform of an order-N Butterworth, or two identical
+    /// Butterworth prototypes for LR. Four second-order slots per edge.
+    fn sections(edge: Edge, rate: u32, high: bool) -> [Self; 4] {
+        let mut sections = [Self::identity(); 4];
+        if edge.bypass {
+            return sections;
+        }
+        let repeat = if edge.family == Family::LinkwitzRiley {
+            2
+        } else {
+            1
+        };
+        let order = edge.slope as usize / 6 / repeat;
+        let mut slot = 0;
+        for _ in 0..repeat {
+            if order % 2 == 1 {
+                let k = (PI * edge.hz / rate as f64).tan();
+                let b = if high { [1., -1., 0.] } else { [k, k, 0.] };
+                sections[slot] = Self::normalized(b, [1. + k, k - 1., 0.]);
+                slot += 1;
+            }
+            for j in 0..order / 2 {
+                let q = 1. / (2. * ((2 * j + 1) as f64 * PI / (2 * order) as f64).sin());
+                sections[slot] = Self::second_order(edge.hz, rate, high, q);
+                slot += 1;
+            }
+        }
+        sections
+    }
+    fn valid(&self) -> bool {
+        self.a.iter().chain(self.b.iter()).all(|x| x.is_finite())
+            && self.a[1].abs() < 1.
+            && 1. + self.a[0] + self.a[1] > 0.
+            && 1. - self.a[0] + self.a[1] > 0.
     }
     fn allpass(hz: f64, rate: u32) -> Self {
         let w = 2. * PI * hz / rate as f64;
@@ -211,6 +252,7 @@ pub struct Prepared {
     input_eq: [[Biquad; 8]; 2],
     output_eq: [[Biquad; 8]; 6],
     geq: [[Biquad; 31]; 2],
+    edges: [[Biquad; 8]; 3],
     low: Biquad,
     rest: Biquad,
     mid: Biquad,
@@ -236,7 +278,18 @@ impl Prepared {
             }
             Biquad::eq(e, rate)
         };
+        let mut edges = [[Biquad::identity(); 8]; 3];
+        if let Crossover::Independent(pairs) = c.crossover {
+            for (filters, pair) in edges.iter_mut().zip(pairs) {
+                filters[..4].copy_from_slice(&Biquad::sections(pair.hp, rate, true));
+                filters[4..].copy_from_slice(&Biquad::sections(pair.lp, rate, false));
+            }
+        }
+        if !edges.iter().flatten().all(Biquad::valid) {
+            return Err("unstable/nonfinite crossover coefficients");
+        }
         Ok(Self {
+            edges,
             input_eq: c.input_eq.map(|es| es.map(|e| eq(e, c.input_eq_enabled))),
             output_eq: std::array::from_fn(|ch| {
                 c.bands[ch / 2]
@@ -308,6 +361,7 @@ pub struct Engine {
     input_eq: [[Filter; 8]; 2],
     geq: [[Filter; 31]; 2],
     output_eq: [[Filter; 8]; 6],
+    edges: [[Filter; 8]; 6],
     low: [[Filter; 2]; 2],
     rest: [[Filter; 2]; 2],
     mid: [[Filter; 2]; 2],
@@ -350,6 +404,7 @@ impl Engine {
             input_eq: p.input_eq.map(|es| es.map(Filter::new)),
             output_eq: p.output_eq.map(|es| es.map(Filter::new)),
             geq: p.geq.map(|es| es.map(Filter::new)),
+            edges: std::array::from_fn(|ch| p.edges[ch / 2].map(Filter::new)),
             low: [[Filter::new(p.low); 2]; 2],
             rest: [[Filter::new(p.rest); 2]; 2],
             mid: [[Filter::new(p.mid); 2]; 2],
@@ -403,6 +458,7 @@ impl Engine {
             || p.config.layout != self.config.layout
             || p.config.input_mode != self.config.input_mode
             || p.config.mono_bass != self.config.mono_bass
+            || p.config.crossover != self.config.crossover
             || p.config.low_hz != self.config.low_hz
             || p.config.high_hz != self.config.high_hz
         {
@@ -415,6 +471,18 @@ impl Engine {
     }
     fn install(&mut self, p: Prepared) {
         let n = (self.config.sample_rate as usize / 50).max(1);
+        if std::mem::discriminant(&self.config.crossover)
+            != std::mem::discriminant(&p.config.crossover)
+        {
+            // Mode switches are installed under mute. Only crossover state resets.
+            self.low = [[Filter::new(p.low); 2]; 2];
+            self.rest = [[Filter::new(p.rest); 2]; 2];
+            self.mid = [[Filter::new(p.mid); 2]; 2];
+            self.high = [[Filter::new(p.high); 2]; 2];
+            self.compensation = [Filter::new(p.compensation); 2];
+            self.edges = std::array::from_fn(|ch| p.edges[ch / 2].map(Filter::new));
+        }
+
         for ch in 0..2 {
             for i in 0..8 {
                 self.input_eq[ch][i].update(p.input_eq[ch][i], n);
@@ -434,6 +502,7 @@ impl Engine {
         for ch in 0..6 {
             for i in 0..8 {
                 self.output_eq[ch][i].update(p.output_eq[ch][i], n);
+                self.edges[ch][i].update(p.edges[ch / 2][i], n);
             }
             self.output_delay[ch].update(p.output_tap[ch / 2], n);
         }
@@ -534,6 +603,21 @@ impl Engine {
             };
             let mut y = [0.; 6];
             for ch in 0..2 {
+                if matches!(self.config.crossover, Crossover::Independent(_)) {
+                    for pair in 0..3 {
+                        let source = if pair == 2
+                            && matches!(
+                                self.config.layout,
+                                Layout::TwoWay | Layout::ThreeWay | Layout::FourPlusSubs
+                            ) {
+                            bass[ch]
+                        } else {
+                            x[ch]
+                        };
+                        y[pair * 2 + ch] = cascade(&mut self.edges[pair * 2 + ch], source);
+                    }
+                    continue;
+                }
                 match self.config.layout {
                     Layout::FullRange | Layout::External => y[ch] = x[ch],
                     Layout::SixFullRange => {
@@ -597,11 +681,7 @@ impl Engine {
                     self.ramps[ch] +=
                         (target - self.ramps[ch]).clamp(-self.ramp_step, self.ramp_step);
                     let sample = delayed * guard * self.ramps[ch];
-                    let active = match self.config.layout {
-                        Layout::FullRange | Layout::External => pair == 0,
-                        Layout::TwoWay => pair != 1,
-                        _ => true,
-                    };
+                    let active = self.config.active_pair(pair);
                     out[ch] = if active { sample as f32 } else { 0. };
                     self.meters.output_peak[ch] = self.meters.output_peak[ch].max(out[ch].abs());
                 }

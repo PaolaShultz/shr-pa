@@ -12,10 +12,67 @@ cargo build --release --locked
 ```
 
 The default terminal is an **offline editor**. It opens no audio device. `s` saves
-`preset.json` in the current directory; `l` loads and validates it, muting all
+`preset.json` in the current directory (press twice to confirm an existing file); `l` loads and validates it, muting all
 outputs. Saving is atomic (file sync, rename, directory sync). Invalid presets
-leave the previous configuration intact. Schema v2 rejects unknown/missing fields and unknown versions. Runtime mutes and active test signals are never saved.
-No automatic working-state recovery or 75-slot preset library exists yet.
+leave the previous configuration intact. Schema v3 rejects unknown/missing fields and unknown versions. Runtime mutes and active test signals are never saved.
+Interactive sessions also use a local `.shr-pa` library: in the current directory
+offline, or beside the command-line preset live. Keep each system/session in its
+own directory. A second editor can run without persistence when that library is
+already locked; the library view reports `NO STORAGE`. Snapshots, WAV rendering,
+validation and non-UI live runs do not recover or write working state.
+
+### Local library and working recovery
+
+Press `P` for the library view; `j`/`k` browse slots/templates without recalling. Press `:` to enter a command, Enter to apply,
+Backspace to edit, or Escape to cancel. Ctrl+C still exits from the prompt.
+These commands work offline and during explicit `live --ui` streaming:
+
+| Command | Operation |
+| --- | --- |
+| `:select U75` | Select user slot 1–75; show name, layout, rate and block size |
+| `:select T4` | Select immutable template 1–6 |
+| `:recall` | Recall selection through the existing mute/transaction path |
+| `:save My venue` | Save desired working state to selected empty user slot |
+| `:save! My venue` | Explicitly replace selected user slot, including its name |
+| `:copy U12 Spare setup` | Copy the **selected saved preset/template** to an empty slot |
+| `:copy! U12 Spare setup` | Explicitly replace the destination with that copy |
+| `:geq manual` | Restore retained manual GEQ gains |
+| `:geq flat` | Audition zero GEQ gains while retaining manual settings |
+| `:geq speech`, `:geq warm`, `:geq gentle` | Audition original documented curves |
+| `:flat inL`, `:restore inL` | Flatten/restore eight PEQs on input L (`inR` for R) |
+| `:flat H`, `:restore H` | Flatten/restore eight PEQs on high pair (`M`/`L` for others) |
+| `:recover-reset` | Archive rejected working state, then checkpoint current edits |
+
+Names contain 1–24 printable ASCII characters to fit the 40-column terminal. `save!`/`copy!` explicitly authorize an overwrite;
+plain save/copy reject occupied or corrupt destinations. Templates are T1 full
+range, T2 external, T3 two-way, T4 three-way, T5 six full-range, T6 four mains plus
+subs, all generic 48 kHz/128-frame configurations. They contain no speaker tunings.
+Select/copy/preview changes no processing or runtime mute. Recall deliberately
+mutes all six outputs and needs a fresh unmute after the pending/busy state clears.
+Incompatible rates/blocks are rejected before replacing edits; start a new session
+with a compatible standalone JSON preset. Selection remains available for inspection.
+
+The library view separates selected slot, active preset baseline, modified state,
+and recovery state. Live pending/busy/fault indicators remain underneath it;
+`Active` identifies the last saved/recalled baseline, and pending/busy means its
+latest processing changes have not settled. `P` closes the view; live Tab returns
+to meters. Save records the desired snapshot, including edits waiting for audio.
+Standalone `s`/`l` still export/import processing JSON; importing establishes new
+manual EQ settings and clears restore history. Library slots retain that history.
+
+Every processing edit is checkpointed synchronously on the controller, independently
+of saved presets. Startup restores compatible working edits **muted**. No file
+opens hardware, restores an unmute, starts a generator or clears an audio fault.
+Only explicit `live` opens audio; `--signal` is a fresh command-line request.
+`live --ui` always starts muted, including when `--unmute` is also supplied.
+
+Corrupt, incomplete, unknown-version or rate/block-incompatible working files
+leave startup defaults/the explicit live preset muted and report blocked recovery.
+They are preserved and further working writes are blocked. `:recover-reset` keeps
+a timestamped `working-rejected-*.json` archive before recording current edits.
+Interrupted temporary files are ignored. Saved slots remain independently usable.
+Failed checkpoints show `Unsaved`; disk failures can lose edits made since the last
+successful checkpoint. See [persistence contract](DSP.md#library-and-working-state).
 
 ## Terminal controls
 
@@ -39,7 +96,7 @@ touchscreen integration remains unverified.
 | `1`…`6` | Toggle each logical output mute |
 | `m` / `u` | Mute / unmute all |
 | `r` | Run an offline 1 kHz, −20 dBFS preview; show computed peaks |
-| `s` / `l` | Save / load `preset.json` |
+| `s` / `l` | Save (confirm overwrite) / load `preset.json` |
 
 The controls above also work live, except `r` (offline preview only). Gain,
 polarity, filters, limiter and delay edits transition for 20 ms. Topology edits
@@ -71,24 +128,67 @@ path when live and `preset.json` in the offline editor. Runtime mutes are exclud
 
 All implemented module parameters are accessible here: GEQ enable/link/gain;
 PEQ enable/type/frequency/gain/Q/shelf S; compressor enable/threshold/ratio/knee/
-makeup/attack/release; limiter ceiling/release; input/pair gain and delays/polarity; fixed layout/input mode and crossover splits.
+makeup/attack/release; limiter ceiling/release; input/pair gain and delays/polarity; fixed layout/input mode, crossover splits and independent HP/LP edges.
 GEQ/PEQ gain steps are 0.1 dB; frequencies/Q use semitone-ratio steps. The JSON
 accepts exact values within validated bounds. See [DSP meanings](DSP.md).
 
-### Existing version-1 presets
+### Crossover controls
 
-Loading v1 fails with an explicit migration instruction. Convert to a separate
-file, preserving the source:
+Use `v` to select CROSSOVER, then `n`/`N` for the field and `x`/`X` to edit.
+After layout, input, low split, high split and mono bass, field 6 is **Mode**.
+Default **Layout LR24** retains the original compensated three-way tree.
+Select **Independent** explicitly to seed per-pair edges from the layout and
+remove the shared three-way phase correction. The mode/phase policy stays visible. A summary shows both independent edges
+together (off or family/slope plus Hz), or the three-way layout cascade.
+
+Fields 7–10 are HP bypass, cutoff, family and slope; fields 11–14 are the same
+for LP. `b` selects H/M/L; inactive pairs are labelled OFF and remain silent.
+Cutoffs step by a semitone and clamp at validated bounds. Families display BW/LR;
+BW steps 6–48 by 6 dB/octave, LR steps 12–48 by 12. Switching BW to LR rounds
+an unavailable slope upward to the next supported slope; the value is displayed.
+Bypass retains all edge settings. Pair gain/polarity remain on `+`/`-`/`p` and the
+gain/delay page. Nothing adjusts gain or polarity automatically.
+
+In independent mode, split shortcuts reject rather than discard edge edits.
+Layout changes retain independent edges. Returning Mode to Layout LR24 discards
+custom edges and restores the layout tree; selecting Independent again reseeds
+its defaults. Save custom settings to a slot before changing modes to retain them.
+Three-way independent settings, overlaps and gaps have no flat-sum guarantee.
+For matched two-way LR12/LR36, invert one branch manually; LR24/LR48 use the same
+polarity. See [all polarity and phase rules](DSP.md#independent-edges-d08).
+
+### Existing presets and library migration
+
+Loading processing v1/v2 or library/working envelope v1 fails with an explicit
+migration instruction. Stop editors before migrating library files. Convert to
+new destinations, preserving the originals:
 
 ```sh
-./target/release/shr-pa migrate old-v1.json new-v2.json
-./target/release/shr-pa check new-v2.json
+./target/release/shr-pa migrate old-v2.json new-v3.json
+./target/release/shr-pa check new-v3.json
+# v1 processing is also accepted directly and converted to v3.
+./target/release/shr-pa migrate old-v1.json migrated-v3.json
+# Slot and working envelopes use the same command:
+mkdir -p migrated-session/.shr-pa
+./target/release/shr-pa migrate old-session/.shr-pa/U1.json migrated-session/.shr-pa/U1.json
+./target/release/shr-pa migrate old-session/.shr-pa/working.json migrated-session/.shr-pa/working.json
 ```
 
-Migration retains all prior values as bells, adds S=1, enables existing PEQs,
-and adds flat/bypassed GEQ and a bypassed compressor. Unknown legacy fields are
-rejected. Version-2 files require all new fields; changing only the version number
-is not a migration. Existing v1 files are never silently reinterpreted.
+Repeat for each occupied U1…U75 slot, keeping the same filename. Missing/empty
+slots need no file, and templates are compiled into the app. Do not copy the old
+lock or interrupted temporary files. Start the offline editor from the migrated
+session directory, or place the migrated standalone live preset beside its
+`.shr-pa` directory. Recovery still requires compatible rate/block settings and
+starts muted. Original files and rejected recovery remain available for rollback.
+Failed validation creates no destination; inspect any migration error before
+starting the new session. Existing destinations are never overwritten.
+
+V2 processing migration adds `crossover: "layout_lr24"`, preserving every old
+value and the original audible behavior. V1 first gains bell types, S=1, enabled
+PEQs, flat/bypassed GEQ and bypassed compression, then converts to v3. Envelope
+migration converts both saved and working baselines and retains their EQ restore
+histories, names and selection. Unknown/missing/incompatible state is rejected.
+Changing only the version number is not a migration.
 
 ## Six-channel offline artifacts
 

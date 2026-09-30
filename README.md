@@ -10,7 +10,8 @@
 
 SHR PA is a hardware-independent **2-input × 6-output** processor:
 LR24 full-range/two-way/phase-compensated three-way layouts, mono selection/bass
-summing, 31-band GEQ, bell/shelf PEQ, stereo-linked compression, delays,
+summing, independent BW6–48/LR12–48 crossover edges, 31-band GEQ, bell/shelf PEQ,
+stereo-linked compression, delays,
 gain/polarity, ramped mutes, linked peak limiters and meters.
 Six-channel offline WAV rendering works without an audio interface. Direct ALSA
 runs selected logical outputs on the physical channels available today, with no
@@ -55,13 +56,16 @@ still run and remain renderable offline. Invalid physical mappings fail locally.
 Live controls use prepared transactions and bounded transitions for gain, polarity,
 EQ, dynamics and delays. Tab opens module controls; `v` selects a module, `n` a
 parameter and `x`/`X` edits it. Layout/recall uses mute/reconfigure/resume.
-Presets use schema v2; `migrate OLD NEW` explicitly converts v1 files. [Full instructions](docs/RUNNING.md).
+Presets use schema v3; `migrate OLD NEW` explicitly converts v1/v2 files and old
+library/working envelopes, retaining source files and EQ history. [Full instructions](docs/RUNNING.md).
 
 ## Remaining scope
 
-The [complete PA2 function inventory](docs/DRIVERACK_MAP.md) still tracks GEQ curves/restore,
-extended crossover/limiter modes, subharmonic synthesis, feedback suppression, measurement/RTA,
-AutoEQ/setup workflows, preset/profile management, remote controls and maintenance.
+The [complete PA2 function inventory](docs/DRIVERACK_MAP.md) still tracks automatic EQ
+restore sources, extended limiter modes, subharmonic synthesis, feedback suppression,
+measurement/RTA, AutoEQ/setup workflows, speaker profiles, remote controls and maintenance.
+The local library, working recovery, manual EQ restore and crossover controls are
+[implemented](docs/STATUS.md).
 These remain planned or partial, rather than being presented as implemented.
 There is no claim of proprietary dbx algorithm equivalence.
 

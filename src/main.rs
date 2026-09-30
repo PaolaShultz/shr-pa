@@ -106,6 +106,7 @@ fn interactive() -> io::Result<()> {
     let _guard = TerminalGuard::enter()?;
     event::poll(Duration::ZERO)?;
     let mut editor = ui::Editor::new()?;
+    editor.attach_library(std::path::PathBuf::from(".shr-pa"));
     let mut page = Page::Home;
     let mut dirty = true;
     while !stop.load(Ordering::Relaxed) {
@@ -128,6 +129,15 @@ fn interactive() -> io::Result<()> {
             continue;
         }
         let action = match event::read()? {
+            Event::Key(key)
+                if key.kind != KeyEventKind::Release
+                    && !(key.code == KeyCode::Char('c')
+                        && key.modifiers.contains(KeyModifiers::CONTROL))
+                    && editor.command_key(key.code) =>
+            {
+                dirty = true;
+                None
+            }
             Event::Key(key) if key.kind != KeyEventKind::Release => match key.code {
                 KeyCode::Char('q') | KeyCode::Esc => Some(Action::Exit),
                 KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {

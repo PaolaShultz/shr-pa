@@ -115,6 +115,45 @@ impl Default for Band {
         }
     }
 }
+/// An edge retains its frequency and shape while bypassed.
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum Family {
+    Butterworth,
+    LinkwitzRiley,
+}
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct Edge {
+    pub bypass: bool,
+    pub hz: f64,
+    pub family: Family,
+    pub slope: u8,
+}
+impl Edge {
+    pub fn lr24(hz: f64, bypass: bool) -> Self {
+        Self {
+            bypass,
+            hz,
+            family: Family::LinkwitzRiley,
+            slope: 24,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct PairEdges {
+    pub hp: Edge,
+    pub lp: Edge,
+}
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case", deny_unknown_fields)]
+pub enum Crossover {
+    /// Original shared LR24 tree, including three-way phase compensation.
+    LayoutLr24,
+    /// Direct program -> pair HP -> pair LP; no automatic phase or polarity correction.
+    Independent([PairEdges; 3]),
+}
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
@@ -124,6 +163,7 @@ pub struct Config {
     pub layout: Layout,
     pub input_mode: InputMode,
     pub mono_bass: bool,
+    pub crossover: Crossover,
     pub low_hz: f64,
     pub high_hz: f64,
     pub input_gain_db: f64,
@@ -138,7 +178,8 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            version: 2,
+            version: 3,
+            crossover: Crossover::LayoutLr24,
             geq: GraphicEq::default(),
             compressor: Compressor::default(),
             input_eq_enabled: true,
@@ -160,9 +201,46 @@ fn range(x: f64, lo: f64, hi: f64) -> bool {
     x.is_finite() && (lo..=hi).contains(&x)
 }
 impl Config {
+    pub fn active_pair(&self, pair: usize) -> bool {
+        match self.layout {
+            Layout::FullRange | Layout::External => pair == 0,
+            Layout::TwoWay => pair < 3 && pair != 1,
+            _ => pair < 3,
+        }
+    }
+    /// Starting edges for independent mode. The legacy three-way tree has
+    /// additional shared HP(low) and AP(high), deliberately absent in this mode.
+    pub fn layout_edges(&self) -> [PairEdges; 3] {
+        let mut pairs = [PairEdges {
+            hp: Edge::lr24(self.low_hz, true),
+            lp: Edge::lr24(self.high_hz, true),
+        }; 3];
+        if matches!(
+            self.layout,
+            Layout::TwoWay | Layout::ThreeWay | Layout::FourPlusSubs
+        ) {
+            pairs[0].hp = Edge::lr24(
+                if self.layout == Layout::ThreeWay {
+                    self.high_hz
+                } else {
+                    self.low_hz
+                },
+                false,
+            );
+            pairs[2].lp = Edge::lr24(self.low_hz, false);
+            if self.layout == Layout::ThreeWay {
+                pairs[1].hp = Edge::lr24(self.low_hz, false);
+                pairs[1].lp = Edge::lr24(self.high_hz, false);
+            } else if self.layout == Layout::FourPlusSubs {
+                pairs[1].hp = pairs[0].hp;
+            }
+        }
+        pairs
+    }
+
     pub fn validate(&self) -> Result<(), &'static str> {
-        if self.version != 2 {
-            return Err("unsupported preset version; v1 requires explicit migrate OLD NEW");
+        if self.version != 3 {
+            return Err("unsupported preset version; v1/v2 require explicit migrate OLD NEW");
         }
         if !(8000..=192000).contains(&self.sample_rate) || !(1..=8192).contains(&self.max_block) {
             return Err("rate must be 8000..192000 Hz; block 1..8192 frames");
@@ -173,6 +251,21 @@ impl Config {
             || self.low_hz >= self.high_hz
         {
             return Err("crossover requires 16 <= low < high <= min(20000, 0.45 * rate)");
+        }
+        if let Crossover::Independent(pairs) = self.crossover {
+            for pair in pairs {
+                for e in [pair.hp, pair.lp] {
+                    let slope_ok = match e.family {
+                        Family::Butterworth => {
+                            (6..=48).contains(&e.slope) && e.slope.is_multiple_of(6)
+                        }
+                        Family::LinkwitzRiley => [12, 24, 36, 48].contains(&e.slope),
+                    };
+                    if !range(e.hz, 16., top) || !slope_ok {
+                        return Err("invalid crossover edge frequency or family/slope");
+                    }
+                }
+            }
         }
         if !range(self.input_gain_db, -60., 20.) || !range(self.input_delay_ms, 0., 100.) {
             return Err("invalid input gain or delay");
@@ -227,9 +320,9 @@ impl Config {
             return Err(io::Error::other("preset exceeds 64 KiB"));
         }
         let value: serde_json::Value = serde_json::from_reader(file)?;
-        if value.get("version").and_then(|v| v.as_u64()) != Some(2) {
+        if value.get("version").and_then(|v| v.as_u64()) != Some(3) {
             return Err(io::Error::other(
-                "unsupported preset version; v1 requires explicit migrate OLD NEW",
+                "unsupported preset version; v1/v2 require explicit migrate OLD NEW",
             ));
         }
         let c: Self = serde_json::from_value(value)?;
@@ -264,23 +357,42 @@ impl Config {
     }
 }
 
-/// Explicit v1 -> v2 conversion: preserve bell meanings, add bypassed new modules.
-/// Unknown legacy fields are rejected before any fields are added.
+/// Explicit processing migration. Sources and existing destinations are never replaced.
 pub fn migrate_v1(source: impl AsRef<Path>, target: impl AsRef<Path>) -> io::Result<()> {
-    let source = source.as_ref();
+    migrate(source, target)
+}
+pub fn migrate(source: impl AsRef<Path>, target: impl AsRef<Path>) -> io::Result<()> {
     let target = target.as_ref();
-    if source == target
-        || (target.exists() && fs::canonicalize(source)? == fs::canonicalize(target)?)
-    {
+    if target.exists() || source.as_ref() == target {
         return Err(io::Error::other(
-            "migration requires a separate destination",
+            "migration requires a new separate destination",
         ));
     }
     let file = fs::File::open(source)?;
-    if file.metadata()?.len() > 65536 {
-        return Err(io::Error::other("preset exceeds 64 KiB"));
+    if file.metadata()?.len() > 262144 {
+        return Err(io::Error::other("state exceeds 256 KiB"));
     }
-    let mut v: serde_json::Value = serde_json::from_reader(file)?;
+    let v: serde_json::Value = serde_json::from_reader(file)?;
+    let migrated = if v.get("sample_rate").is_some() {
+        serde_json::to_value(migrate_value(v)?)?
+    } else {
+        crate::library::migrate_value(v)?
+    };
+    crate::library::atomic_new(target, &migrated)
+}
+pub(crate) fn migrate_value(mut v: serde_json::Value) -> io::Result<Config> {
+    if v["version"].as_u64() == Some(2) {
+        // Reject a forged newer field before adding it; strict deserialization
+        // below verifies every other required field and nested object.
+        if v.get("crossover").is_some() {
+            return Err(io::Error::other("unknown v2 crossover field"));
+        }
+        v["version"] = 3.into();
+        v["crossover"] = serde_json::to_value(Crossover::LayoutLr24)?;
+        let c: Config = serde_json::from_value(v)?;
+        c.validate().map_err(io::Error::other)?;
+        return Ok(c);
+    }
     fn keys(v: &serde_json::Value, allowed: &[&str]) -> io::Result<()> {
         let o = v
             .as_object()
@@ -349,6 +461,5 @@ pub fn migrate_v1(source: impl AsRef<Path>, target: impl AsRef<Path>) -> io::Res
     v["input_eq_enabled"] = true.into();
     v["geq"] = serde_json::to_value(GraphicEq::default())?;
     v["compressor"] = serde_json::to_value(Compressor::default())?;
-    let c: Config = serde_json::from_value(v)?;
-    c.save(target)
+    migrate_value(v)
 }

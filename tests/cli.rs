@@ -74,5 +74,26 @@ fn preset_render_commands_and_invalid_mapping_fail_before_hardware_open() {
     ]);
     assert!(!result.status.success());
     assert!(String::from_utf8_lossy(&result.stderr).contains("physical output unavailable"));
+    let mut old: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&preset).unwrap()).unwrap();
+    old["version"] = 2.into();
+    old.as_object_mut().unwrap().remove("crossover");
+    let bytes = serde_json::to_vec(&old).unwrap();
+    std::fs::write(&preset, &bytes).unwrap();
+    assert!(!run(&["check", p]).status.success());
+    let migrated = dir.join("v3.json");
+    let m = migrated.to_str().unwrap();
+    assert!(run(&["migrate", p, m]).status.success());
+    assert!(run(&["check", m]).status.success());
+    assert_eq!(std::fs::read(&preset).unwrap(), bytes);
+    assert!(!run(&["migrate", p, m]).status.success());
+    let link = dir.join("dangling.json");
+    std::os::unix::fs::symlink(dir.join("missing.json"), &link).unwrap();
+    assert!(
+        !run(&["migrate", p, link.to_str().unwrap()])
+            .status
+            .success()
+    );
+    assert!(link.is_symlink());
     std::fs::remove_dir_all(dir).unwrap();
 }

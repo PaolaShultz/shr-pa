@@ -11,8 +11,8 @@ pub fn execute(args: &[String]) -> offline::Result<bool> {
     };
     match command {
         "migrate" if args.len() == 3 => {
-            crate::config::migrate_v1(&args[1], &args[2])?;
-            println!("Migrated v1 to v2: {} (source retained)", args[2]);
+            crate::config::migrate(&args[1], &args[2])?;
+            println!("Migrated to current schema: {} (source retained)", args[2]);
         }
         "init" if args.len() == 2 => {
             Config::default().save(&args[1])?;

@@ -34,7 +34,19 @@ module lands. Prepared handoff/backpressure, concurrent publication, response/dy
 transitions, migration and zero-allocation regressions now protect live controls.
 The live-controls PTY script uses only software `null` PCM, exercises module edits,
 save/recall, rejected rate changes and cleanup, and belongs to normal CI.
-Add analysis isolation and automatic recovery regressions with those future features.
+Library/working recovery, immutable templates, all 75 slots, explicit overwrites,
+EQ restore, strict envelope validation, incompatible state, writer exclusion and
+interrupted temporary files now have normal Rust regressions. Allocation tests
+include curve/flatten/restore transactions. PTY checks also exercise working
+restart, muted recovery, corrupt-state archival and live library/EQ commands.
+D08 adds independent analog-pole magnitude/phase references for all BW/LR orders,
+cutoff/stopband/bypass/extreme-rate checks, matched polarity sums, layout roles,
+v2/envelope migration, retained history under mute/reconfigure and allocation-free
+edge edits. The null PTY test edits both edges on all pairs, rejects split shortcuts
+in independent mode and recovers the saved crossover after restart. See
+[crossover verification](verification/0006-crossover.md).
+Add analysis isolation and automatic device reconnection regressions with those
+future features.
 
 Use [function-map IDs](DRIVERACK_MAP.md) to link each future test/evidence record
 to the planned capability. Include all fixed configuration families, inactive

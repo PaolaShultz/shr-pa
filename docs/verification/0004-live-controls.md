@@ -1,5 +1,8 @@
 # Live transactions and P3 core controls — 2026-09-29
 
+Subsequent preset-library, working-recovery and EQ-history work is recorded in
+[0005](0005-preset-library.md). This record retains its original test scope.
+
 Implemented over the existing uncommitted engine/ALSA slice based on `488c682`.
 Prior work was preserved; nothing was committed or pushed. This record supplements
 [0003](0003-engine.md), whose physical trials used the earlier processing workload.

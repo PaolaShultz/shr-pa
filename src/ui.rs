@@ -127,6 +127,15 @@ pub struct Editor {
     index: usize,
     channel: usize,
     recall_requested: bool,
+    eq: crate::library::EqState,
+    saved_eq: crate::library::EqState,
+    export_confirm: bool,
+    library: Option<crate::library::Library>,
+    library_selected: String,
+    active: String,
+    recovered: bool,
+    library_view: bool,
+    prompt: Option<String>,
 }
 impl Editor {
     pub fn new() -> std::io::Result<Self> {
@@ -143,11 +152,77 @@ impl Editor {
             index: 0,
             channel: 0,
             recall_requested: false,
+            eq: crate::library::EqState::new(&crate::config::Config::default()),
+            saved_eq: crate::library::EqState::new(&crate::config::Config::default()),
+            export_confirm: false,
+            library: None,
+            library_selected: "U1".into(),
+            active: "standalone".into(),
+            recovered: false,
+            library_view: false,
+            prompt: None,
         })
     }
     pub fn key(&mut self, key: char) {
-        use crate::config::Layout;
+        if key == 'P' {
+            self.export_confirm = false;
+            self.library_view = !self.library_view;
+            return;
+        }
+        if self.library_view && matches!(key, 'j' | 'k') {
+            let (template, n) =
+                crate::library::slot(&self.library_selected).expect("validated selection");
+            let position = if template { n - 1 } else { n + 5 };
+            let next = (position + if key == 'j' { 1 } else { 80 }) % 81;
+            let id = if next < 6 {
+                format!("T{}", next + 1)
+            } else {
+                format!("U{}", next - 5)
+            };
+            self.command(&format!("select {id}"));
+            return;
+        }
+        let before = self.config;
+        let old_eq = self.eq.clone();
+        let old_saved_eq = self.saved_eq.clone();
+        let saved = self.saved;
+        if key != 's' {
+            self.export_confirm = false;
+        }
+        if matches!(key, 'x' | 'X') && self.module == 0 && self.field == 2 {
+            self.eq
+                .geq(&mut self.config, crate::library::GeqMode::Manual);
+        }
+        self.edit_key(key);
+        if before.geq.db != self.config.geq.db {
+            self.eq.mode = crate::library::GeqMode::Manual;
+            self.eq.manual = self.config.geq.db;
+        }
+        if before != self.config
+            || old_eq != self.eq
+            || old_saved_eq != self.saved_eq
+            || saved != self.saved
+            || self.recall_requested
+        {
+            self.checkpoint();
+        }
+    }
+    fn edit_key(&mut self, key: char) {
+        use crate::config::{Crossover, Layout};
         let mut next = self.config;
+        let independent = matches!(next.crossover, Crossover::Independent(_));
+        if independent
+            && (matches!(key, '[' | ']' | '{' | '}')
+                || (matches!(key, 'x' | 'X') && self.module == 6 && matches!(self.field, 2 | 3)))
+        {
+            self.message = "Splits need Mode: Layout LR24".into();
+            return;
+        }
+        if !independent && matches!(key, 'x' | 'X') && self.module == 6 && self.field >= 6 {
+            self.message = "Select Mode: Independent to edit edges".into();
+            return;
+        }
+
         match key {
             'v' => {
                 self.module = (self.module + 1) % 7;
@@ -249,9 +324,16 @@ impl Editor {
             }
             'o' => next.mono_bass = !next.mono_bass,
             's' => {
+                if self.path.exists() && !self.export_confirm {
+                    self.export_confirm = true;
+                    self.message = "Overwrite JSON? s again; other key cancels".into();
+                    return;
+                }
+                self.export_confirm = false;
                 self.message = match self.config.save(&self.path) {
                     Ok(()) => {
                         self.saved = self.config;
+                        self.saved_eq = self.eq.clone();
                         "Saved; runtime mutes excluded".into()
                     }
                     Err(e) => e.to_string(),
@@ -260,6 +342,15 @@ impl Editor {
             }
             'l' => match crate::config::Config::load(&self.path) {
                 Ok(c) => {
+                    if c.sample_rate != self.config.sample_rate
+                        || c.max_block != self.config.max_block
+                    {
+                        self.message = "Rate/block recall requires restart".into();
+                        return;
+                    }
+                    self.eq = crate::library::EqState::new(&c);
+                    self.saved_eq = self.eq.clone();
+                    self.active = "standalone".into();
                     next = c;
                     self.saved = c;
                     self.recall_requested = true;
@@ -300,7 +391,13 @@ impl Editor {
                 self.config = next;
                 self.peaks = [0.; 6];
                 if key != 'l' {
-                    self.message = "Edited; r to refresh offline preview".into();
+                    self.message =
+                        if self.module == 6 && self.field == 5 && matches!(key, 'x' | 'X') {
+                            "Mode reset edges; gain/polarity retained"
+                        } else {
+                            "Edited; r to refresh offline preview"
+                        }
+                        .into();
                 }
             }
             Err(e) => self.message = e.into(),
@@ -316,7 +413,7 @@ impl Editor {
             let rows = [
                 format!(
                     "01 / ENGINE - OFFLINE EDITOR {}",
-                    if self.config != self.saved { "*" } else { "" }
+                    if self.modified() { "*" } else { "" }
                 ),
                 format!("c:{:?} i:{:?}", self.config.layout, self.config.input_mode),
                 format!(
@@ -337,7 +434,7 @@ impl Editor {
                         .iter()
                         .collect::<String>()
                 ),
-                "m:mute u:unmute r:preview s:save l:load".into(),
+                "P:library :command s:save l:load".into(),
                 format!(
                     "Peak {:.3} {:.3} {:.3}",
                     self.peaks[0], self.peaks[2], self.peaks[4]
@@ -348,7 +445,11 @@ impl Editor {
                 *line = text.chars().take(WIDTH as usize).collect();
             }
         }
-        if page == Page::Features {
+        if self.library_view || self.prompt.is_some() {
+            for (line, text) in lines[2..11].iter_mut().zip(self.library_rows()) {
+                *line = text.chars().take(WIDTH as usize).collect();
+            }
+        } else if page == Page::Features {
             let rows = self.module_rows();
             for (line, text) in lines[2..11].iter_mut().zip(rows) {
                 *line = text.chars().take(WIDTH as usize).collect();
@@ -360,7 +461,7 @@ impl Editor {
 
 impl Editor {
     fn field_count(&self) -> usize {
-        [3, 6, 6, 7, 2, 6, 5][self.module]
+        [3, 6, 6, 7, 2, 6, 14][self.module]
     }
     fn adjust(&self, c: &mut crate::config::Config, d: f64) {
         use crate::config::{EqKind, InputMode, Layout};
@@ -463,11 +564,60 @@ impl Editor {
                     c.high_hz =
                         (c.high_hz * 1.1_f64.powf(d)).min((c.sample_rate as f64 * 0.45).min(20000.))
                 }
-                _ => c.mono_bass = !c.mono_bass,
+                4 => c.mono_bass = !c.mono_bass,
+                5 => {
+                    c.crossover = match c.crossover {
+                        crate::config::Crossover::LayoutLr24 => {
+                            crate::config::Crossover::Independent(c.layout_edges())
+                        }
+                        _ => crate::config::Crossover::LayoutLr24,
+                    };
+                }
+                _ => {
+                    if let crate::config::Crossover::Independent(ref mut pairs) = c.crossover {
+                        let e = if f < 10 {
+                            &mut pairs[pair].hp
+                        } else {
+                            &mut pairs[pair].lp
+                        };
+                        match (f - 6) % 4 {
+                            0 => e.bypass = !e.bypass,
+                            1 => {
+                                e.hz = (e.hz * 2_f64.powf(d / 12.))
+                                    .clamp(16., (c.sample_rate as f64 * 0.45).min(20000.))
+                            }
+                            2 => {
+                                e.family = if e.family == crate::config::Family::Butterworth {
+                                    crate::config::Family::LinkwitzRiley
+                                } else {
+                                    crate::config::Family::Butterworth
+                                };
+                                if e.family == crate::config::Family::LinkwitzRiley
+                                    && !e.slope.is_multiple_of(12)
+                                {
+                                    e.slope += 6;
+                                }
+                            }
+                            _ => {
+                                let step = if e.family == crate::config::Family::Butterworth {
+                                    6
+                                } else {
+                                    12
+                                };
+                                e.slope = (e.slope as i16 + if d > 0. { step } else { -step })
+                                    .clamp(step, 48)
+                                    as u8;
+                            }
+                        }
+                    }
+                }
             },
         }
     }
     fn module_rows(&self) -> Vec<String> {
+        if self.library_view || self.prompt.is_some() {
+            return self.library_rows();
+        }
         let c = &self.config;
         let b = &c.bands[self.selected];
         let fields: Vec<String> = match self.module {
@@ -525,13 +675,40 @@ impl Editor {
                 format!("Pair delay {:.1} ms", b.delay_ms),
                 format!("Mono bass {}", c.mono_bass),
             ],
-            _ => vec![
-                format!("Layout {:?}", c.layout),
-                format!("Input {:?}", c.input_mode),
-                format!("Low split {:.1} Hz", c.low_hz),
-                format!("High split {:.1} Hz", c.high_hz),
-                format!("Mono bass {}", c.mono_bass),
-            ],
+            _ => {
+                use crate::config::{Crossover, Family};
+                let (mode, pairs) = match c.crossover {
+                    Crossover::LayoutLr24 => ("Layout LR24", c.layout_edges()),
+                    Crossover::Independent(pairs) => ("Independent", pairs),
+                };
+                let mut fields = vec![
+                    format!("Layout {:?}", c.layout),
+                    format!("Input {:?}", c.input_mode),
+                    format!("Low split {:.1} Hz", c.low_hz),
+                    format!("High split {:.1} Hz", c.high_hz),
+                    format!("Mono bass {}", c.mono_bass),
+                    format!("Mode: {mode}"),
+                ];
+                for (name, e) in [
+                    ("HP", pairs[self.selected].hp),
+                    ("LP", pairs[self.selected].lp),
+                ] {
+                    fields.extend([
+                        format!("{name} bypass {}", e.bypass),
+                        format!("{name} cutoff {:.1} Hz", e.hz),
+                        format!(
+                            "{name} family {}",
+                            if e.family == Family::Butterworth {
+                                "BW"
+                            } else {
+                                "LR"
+                            }
+                        ),
+                        format!("{name} slope {} dB/oct", e.slope),
+                    ]);
+                }
+                fields
+            }
         };
         vec![
             format!(
@@ -545,7 +722,7 @@ impl Editor {
                     "GAIN/DELAY",
                     "CROSSOVER"
                 ][self.module],
-                if self.config != self.saved {
+                if self.modified() {
                     "*modified"
                 } else {
                     "saved"
@@ -563,6 +740,20 @@ impl Editor {
             ),
             if self.module == 0 {
                 format!("GEQ {:.1} Hz", crate::config::GEQ_HZ[self.index])
+            } else if self.module == 6 {
+                format!(
+                    "{}; pair {}",
+                    if matches!(c.crossover, crate::config::Crossover::LayoutLr24) {
+                        "Layout LR24 + phase tree"
+                    } else {
+                        "Independent; no phase AP"
+                    },
+                    if c.active_pair(self.selected) {
+                        "on"
+                    } else {
+                        "OFF"
+                    }
+                )
             } else {
                 format!("Layout {:?}", c.layout)
             },
@@ -570,7 +761,42 @@ impl Editor {
             format!("> {}", fields[self.field]),
             format!("  {}", fields[(self.field + 1) % fields.len()]),
             "x/X +/- or toggle; v next module".into(),
-            "s:save l:recall  m:mute u:unmute".into(),
+            if self.module == 6 {
+                use crate::config::{Crossover, Family, Layout};
+                match c.crossover {
+                    Crossover::Independent(pairs) => {
+                        let show = |e: crate::config::Edge| {
+                            let shape = if e.bypass {
+                                "off".into()
+                            } else {
+                                format!(
+                                    "{}{}",
+                                    if e.family == Family::Butterworth {
+                                        "BW"
+                                    } else {
+                                        "LR"
+                                    },
+                                    e.slope
+                                )
+                            };
+                            format!("{shape} {:.1}", e.hz)
+                        };
+                        format!(
+                            "HP {} LP {}",
+                            show(pairs[self.selected].hp),
+                            show(pairs[self.selected].lp)
+                        )
+                    }
+                    Crossover::LayoutLr24 if c.layout == Layout::ThreeWay => match self.selected {
+                        0 => format!("HP {:.1} > HP {:.1}", c.low_hz, c.high_hz),
+                        1 => format!("HP {:.1} > LP {:.1}", c.low_hz, c.high_hz),
+                        _ => format!("LP {:.1} > AP {:.1}", c.low_hz, c.high_hz),
+                    },
+                    _ => "[]/{} splits; Mode seeds edge edits".into(),
+                }
+            } else {
+                "P:library :command s:export l:import".into()
+            },
             self.message.clone(),
         ]
     }
@@ -611,9 +837,19 @@ pub fn live(
     editor.config = config;
     editor.saved = config;
     editor.path = preset_path.into();
+    editor.eq = crate::library::EqState::new(&config);
+    editor.saved_eq = editor.eq.clone();
+    editor.attach_library(
+        std::path::Path::new(preset_path)
+            .parent()
+            .unwrap_or(std::path::Path::new("."))
+            .join(".shr-pa"),
+    );
+    // Recovery changes processing only, and explicit UI startup always stays muted.
+    shared.mutes.store(63, Ordering::Relaxed);
     let mut sent = config;
     let mut modules = false;
-    let mut queued_recall = false;
+    let mut queued_recall = editor.recovered;
 
     std::thread::scope(|scope| {
         let s = shared.clone();
@@ -680,11 +916,7 @@ pub fn live(
                         let mut rows = vec![
                             format!(
                                 "SHR PA / LIVE 2 x 6 {}",
-                                if editor.config != editor.saved {
-                                    "*"
-                                } else {
-                                    ""
-                                }
+                                if editor.modified() { "*" } else { "" }
                             ),
                             "1..6: mute toggle  m:all mute  u:unmute".into(),
                         ];
@@ -739,6 +971,18 @@ pub fn live(
                     && let Event::Key(k) = event::read()?
                     && k.kind != event::KeyEventKind::Release
                 {
+                    if !(k.code == KeyCode::Char('c')
+                        && k.modifiers.contains(KeyModifiers::CONTROL))
+                        && editor.command_key(k.code)
+                    {
+                        modules = true;
+                        if editor.recall_requested {
+                            shared.mutes.store(63, Ordering::Relaxed);
+                            queued_recall = true;
+                            editor.recall_requested = false;
+                        }
+                        continue;
+                    }
                     match k.code {
                         KeyCode::Char('q') | KeyCode::Esc => break,
                         KeyCode::Char('c') if k.modifiers.contains(KeyModifiers::CONTROL) => break,
@@ -793,7 +1037,7 @@ pub fn live(
                                 queued_recall = true;
                                 editor.recall_requested = false;
                             }
-                            if matches!(c, 'v' | 'n' | 'N' | 'x' | 'X' | 'j' | 'k' | 'h') {
+                            if matches!(c, 'v' | 'n' | 'N' | 'x' | 'X' | 'j' | 'k' | 'h' | 'P') {
                                 modules = true;
                             }
                         }
@@ -808,6 +1052,261 @@ pub fn live(
         ui_result?;
         result
     })
+}
+
+impl Editor {
+    /// Explicitly attach persistence for interactive sessions only; snapshots/tests stay pure.
+    pub fn attach_library(&mut self, root: std::path::PathBuf) {
+        match crate::library::Library::open(root) {
+            Ok(mut lib) => {
+                match lib.recover(&self.config) {
+                    Ok(Some(w)) => {
+                        self.config = w.preset.config;
+                        self.eq = w.preset.eq;
+                        self.saved = w.saved;
+                        self.saved_eq = w.saved_eq;
+                        self.library_selected = w.selected;
+                        self.active = w.active;
+                        self.recovered = true;
+                        self.mutes = [true; 6];
+                        self.message = "Recovered working edits; muted".into();
+                    }
+                    Ok(None) => {}
+                    Err(e) => self.message = format!("Recovery blocked: {e}"),
+                }
+                self.library = Some(lib);
+            }
+            Err(e) => self.message = format!("Persistence unavailable: {e}"),
+        }
+    }
+    fn checkpoint(&mut self) {
+        if let Some(lib) = &self.library {
+            let w = crate::library::Working {
+                version: 2,
+                selected: self.library_selected.clone(),
+                active: self.active.clone(),
+                saved: self.saved,
+                saved_eq: self.saved_eq.clone(),
+                preset: crate::library::Preset::new("Working", self.config, self.eq.clone()),
+            };
+            if let Err(e) = lib.checkpoint(&w) {
+                self.message = format!("Unsaved: {e}");
+            }
+        }
+    }
+    /// Returns true when the command prompt consumed a terminal event.
+    pub fn command_key(&mut self, key: crossterm::event::KeyCode) -> bool {
+        use crossterm::event::KeyCode;
+        if key != KeyCode::Char('s') {
+            self.export_confirm = false;
+        }
+        if self.prompt.is_none() {
+            if key == KeyCode::Char(':') {
+                self.export_confirm = false;
+                self.prompt = Some(String::new());
+                return true;
+            }
+            return false;
+        }
+        match key {
+            KeyCode::Esc => {
+                self.prompt = None;
+            }
+            KeyCode::Enter => {
+                let command = self.prompt.take().unwrap();
+                self.command(&command);
+            }
+            KeyCode::Backspace => {
+                self.prompt.as_mut().unwrap().pop();
+            }
+            KeyCode::Char(c) if c.is_ascii() && !c.is_control() => {
+                let text = self.prompt.as_mut().unwrap();
+                if text.chars().count() < 100 {
+                    text.push(c);
+                }
+            }
+            _ => {}
+        }
+        true
+    }
+    pub fn command(&mut self, command: &str) {
+        self.library_view = true;
+        self.message.clear();
+        self.message = match self.execute_command(command) {
+            Ok(s) => s,
+            Err(e) => e.to_string(),
+        };
+    }
+    fn execute_command(&mut self, command: &str) -> std::io::Result<String> {
+        use crate::library::{GeqMode, Preset};
+        use std::io::Error;
+        let (op, arg) = command
+            .trim()
+            .split_once(' ')
+            .unwrap_or((command.trim(), ""));
+        let arg = arg.trim();
+        match op {
+            "select" => {
+                crate::library::slot(arg)?;
+                self.library_selected = arg.into();
+                self.checkpoint();
+                if self.message.starts_with("Unsaved:") {
+                    return Err(Error::other(self.message.clone()));
+                }
+                return Ok("Selected only; :recall to apply".into());
+            }
+            "recall" => {
+                let p = self
+                    .library
+                    .as_ref()
+                    .ok_or_else(|| Error::other("library unavailable"))?
+                    .load(&self.library_selected)?;
+                if p.config.sample_rate != self.config.sample_rate
+                    || p.config.max_block != self.config.max_block
+                {
+                    return Err(Error::other("Rate/block recall requires restart"));
+                }
+                self.config = p.config;
+                self.saved = p.config;
+                self.eq = p.eq;
+                self.saved_eq = self.eq.clone();
+                self.active = self.library_selected.clone();
+                self.mutes = [true; 6];
+                self.recall_requested = true;
+            }
+            "save" | "save!" => {
+                let p = Preset::new(arg, self.config, self.eq.clone());
+                self.library
+                    .as_ref()
+                    .ok_or_else(|| Error::other("library unavailable"))?
+                    .save(&self.library_selected, &p, op == "save!")?;
+                self.saved = self.config;
+                self.saved_eq = self.eq.clone();
+                self.active = self.library_selected.clone();
+            }
+            "copy" | "copy!" => {
+                let (target, name) = arg
+                    .split_once(' ')
+                    .ok_or_else(|| Error::other("copy U1..U75 NAME"))?;
+                let lib = self
+                    .library
+                    .as_ref()
+                    .ok_or_else(|| Error::other("library unavailable"))?;
+                let mut p = lib.load(&self.library_selected)?;
+                p.name = name.into();
+                lib.save(target, &p, op == "copy!")?;
+                return Ok(format!("Copied selection to {target}"));
+            }
+            "geq" => {
+                let mode = match arg {
+                    "manual" => GeqMode::Manual,
+                    "flat" => GeqMode::Flat,
+                    "speech" => GeqMode::Speech,
+                    "warm" => GeqMode::Warm,
+                    "gentle" => GeqMode::Gentle,
+                    _ => return Err(Error::other("geq manual|flat|speech|warm|gentle")),
+                };
+                self.eq.geq(&mut self.config, mode);
+            }
+            "flat" | "restore" => {
+                let (input, index) = match arg {
+                    "inL" => (true, 0),
+                    "inR" => (true, 1),
+                    "H" => (false, 0),
+                    "M" => (false, 1),
+                    "L" => (false, 2),
+                    _ => return Err(Error::other("scope: inL inR H M L")),
+                };
+                self.eq
+                    .peq(&mut self.config, input, index, op == "restore")?;
+            }
+            "recover-reset" => {
+                self.library
+                    .as_mut()
+                    .ok_or_else(|| Error::other("library unavailable"))?
+                    .reset_recovery()?;
+                self.recovered = false;
+            }
+            _ => return Err(Error::other("select/recall/save/copy/geq/flat/restore")),
+        }
+        self.config.validate().map_err(Error::other)?;
+        self.checkpoint();
+        // Keep persistence failures visible rather than reporting a successful checkpoint.
+        if self.message.starts_with("Unsaved:") {
+            return Err(Error::other(self.message.clone()));
+        }
+        Ok(if op == "recall" {
+            "Recalled; muted until fresh unmute".into()
+        } else {
+            format!("{op} complete")
+        })
+    }
+    pub fn modified(&self) -> bool {
+        self.config != self.saved || self.eq != self.saved_eq
+    }
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+    fn library_rows(&self) -> Vec<String> {
+        let preview = self
+            .library
+            .as_ref()
+            .map(|l| l.load(&self.library_selected));
+        let (name, detail) = match preview {
+            Some(Ok(p)) => (
+                p.name,
+                format!(
+                    "{:?} {}Hz/{}",
+                    p.config.layout, p.config.sample_rate, p.config.max_block
+                ),
+            ),
+            Some(Err(e)) if e.kind() == std::io::ErrorKind::NotFound => (
+                "Empty user slot".into(),
+                "Save working or copy selection here".into(),
+            ),
+            Some(Err(_)) => (
+                "Unreadable slot (preserved)".into(),
+                "Explicit save! needed to replace".into(),
+            ),
+            None => (
+                "Library unavailable".into(),
+                "Check persistence message".into(),
+            ),
+        };
+        vec![
+            format!("Selected {} {}", self.library_selected, name),
+            detail,
+            format!(
+                "Active {} {}",
+                self.active,
+                if self.modified() {
+                    "*modified"
+                } else {
+                    "saved"
+                }
+            ),
+            format!(
+                "Recovery {} GEQ {:?}",
+                if self.library.as_ref().is_some_and(|l| l.recovery_blocked) {
+                    "BLOCKED"
+                } else if self.library.is_none() {
+                    "NO STORAGE"
+                } else if self.recovered {
+                    "restored"
+                } else {
+                    "ready"
+                },
+                self.eq.mode
+            ),
+            "j/k browse :select U#/T# :recall".into(),
+            ":save NAME / :save! NAME overwrite".into(),
+            ":copy U# NAME  :geq flat/manual/...".into(),
+            ":flat / :restore inL|inR|H|M|L".into(),
+            self.prompt
+                .as_ref()
+                .map_or_else(|| self.message.clone(), |s| format!(":{s}")),
+        ]
+    }
 }
 
 #[cfg(test)]

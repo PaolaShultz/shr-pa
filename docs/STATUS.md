@@ -13,7 +13,12 @@
   numerical-fault silence. See [precise behavior and limits](DSP.md).
 - Seeded white noise, sine, impulse and log sweep; stereo WAV input and six-channel
   float WAV output, independent of physical channel counts.
-- Validated v2 JSON presets with atomic save/load and explicit v1 migration. Terminal edits
+- 75 named user slots, six immutable layout templates, selection before recall,
+  explicit overwrite/copy, atomic working-edit recovery and retained EQ restore points.
+  GEQ manual/flat and three original curves; scoped input/pair PEQ flatten/restore.
+- Independent HP/LP bypass/cutoff, BW6–48 and LR12/24/36/48 on every pair;
+  original layout LR24 remains default with its three-way phase compensation.
+- Validated v3 JSON presets and v2 library envelopes with explicit v1/v2 migration. Terminal edits
   and computed preview; compact keyboard/mouse navigation and terminal cleanup.
 
 ## Implemented live transport
@@ -26,9 +31,12 @@ Live terminal has all implemented module controls, six ramped mutes, peaks,
 compression/limiting reduction, physical mappings and modified/pending/fault status.
 One bounded prepared-transaction slot applies edits at block boundaries without
 render allocation, locks or audio queues. Layout/recall use mute/reconfigure/resume.
-Software-null streaming and PTY checks exercise these controls; new physical
-streaming trials were blocked by JACK owning the interface (left running).
-See [live-control verification](verification/0004-live-controls.md).
+Software-null streaming and PTY checks exercise these controls. Earlier live-control
+physical trials were blocked by JACK owning the interface (left running); the
+crossover slice made no hardware attempts.
+See [live-control verification](verification/0004-live-controls.md) and
+[preset/recovery verification](verification/0005-preset-library.md), and
+[independent crossover verification](verification/0006-crossover.md).
 
 ## Earlier physical trials on this Pi
 
@@ -45,11 +53,10 @@ noise floor, acoustic behavior and speaker protection remain unmeasured.
 
 ## Still pending
 
-GEQ tonal curves/restore history, PA2 shelf-slope unit compatibility,
+PA2 shelf-slope unit compatibility, automatic input-EQ restore sources,
 subharmonic synthesis, feedback suppression,
-RTA/separate mic integration, AutoEQ/setup wizards, alternate crossover slopes
-and independent edges, limiter bypass/knee modes,
-preset slots/profiles/recovery, lockout/remote/update management, automatic device
+RTA/separate mic integration, AutoEQ/setup wizards, limiter bypass/knee modes,
+speaker/amplifier profiles, lockout/remote/update management, automatic device
 recovery, and physical touchscreen integration. The [full map](DRIVERACK_MAP.md)
 retains these features and acceptance work; partial rows are not marked complete.
 

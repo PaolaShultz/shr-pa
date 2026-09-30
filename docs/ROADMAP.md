@@ -8,7 +8,7 @@ maintenance and hardware differences. The first engine, offline tools and direct
 Stages describe feature groups, not a requirement to finish hardware qualification
 before DSP work. P2 and initial P3/P7 work proceed independently of P1. Keep all
 mapped functions visible as work progresses. LR24 is the first/default crossover.
-Other reference slopes stay on the compatibility backlog. Matrix routing,
+Independent BW6–48 and LR12/24/36/48 edges now work in D08. Matrix routing,
 advanced patching, eight-point positional RTA and the later nine-channel layout
 are [future work](FUTURE.md).
 
@@ -72,13 +72,17 @@ limiter and mute tests; render allocation checks; low-level bench loopback.
 ## P3 — full processing controls and presets (core modules working)
 
 GEQ, bell/shelf PEQ, stereo-linked compressor, prepared live edits, compact module
-controls and v2 presets with explicit migration are implemented. See
-[verification](verification/0004-live-controls.md). Curves/restore, extended
-crossover/limiter modes, preset library and recovery remain pending.
+controls and versioned presets with explicit migration are implemented. See
+[verification](verification/0004-live-controls.md). The practical preset/EQ slice
+now adds 75 user slots, immutable templates, naming/copy/selection/recall, working
+recovery, original GEQ curves and scoped PEQ restore; see
+[preset evidence](verification/0005-preset-library.md). Independent crossover edges
+and all planned BW/LR slopes now have [D08 evidence](verification/0006-crossover.md).
+Extended limiter modes, PA2 shelf units and automatic input-EQ sources remain pending.
 
 Covers D01–D03, D06, D08–D11, O04–O05. Add 31-band GEQ, dedicated eight-band room
 PEQ, eight-band speaker PEQs, compressor and full parameter/bypass controls.
-Implement the remaining mapped crossover families after LR24 is verified.
+The mapped crossover families now coexist with the retained layout LR24 default.
 
 Design coefficients outside render. Use double precision for coefficient design;
 measure f32 versus f64 state before choosing. Check shelf response and extreme

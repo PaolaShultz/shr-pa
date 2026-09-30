@@ -93,7 +93,38 @@ fn prepared_handoff_full_processing_transitions_recall_and_fault_never_allocate(
             e.kind = EqKind::HighShelf;
         }
     }
+    let mut eq = shr_pa::library::EqState::new(&c);
+    let mut curve = c;
+    eq.geq(&mut curve, shr_pa::library::GeqMode::Speech);
+    let curve_edit = Prepared::new(curve, false).unwrap();
+    eq.geq(&mut curve, shr_pa::library::GeqMode::Manual);
+    eq.peq(&mut curve, true, 0, false).unwrap();
+    eq.peq(&mut curve, false, 2, false).unwrap();
+    let flat_edit = Prepared::new(curve, false).unwrap();
+    eq.peq(&mut curve, true, 0, true).unwrap();
+    eq.peq(&mut curve, false, 2, true).unwrap();
+    let restore_edit = Prepared::new(curve, false).unwrap();
+    let mut crossover = next;
+    let mut pairs = crossover.layout_edges();
+    for pair in &mut pairs {
+        pair.hp.bypass = false;
+        pair.hp.slope = 48;
+        pair.lp.bypass = false;
+        pair.lp.slope = 48;
+        pair.lp.family = shr_pa::config::Family::Butterworth;
+    }
+    crossover.crossover = shr_pa::config::Crossover::Independent(pairs);
+    let edge_edit = Prepared::new(crossover, false).unwrap();
+    pairs[0].hp.bypass = true;
+    pairs[1].lp.slope = 42;
+    crossover.crossover = shr_pa::config::Crossover::Independent(pairs);
+    let bypass_edit = Prepared::new(crossover, false).unwrap();
     let edits = [
+        edge_edit,
+        bypass_edit,
+        curve_edit,
+        flat_edit,
+        restore_edit,
         Prepared::new(next, false).unwrap(),
         Prepared::new(c, true).unwrap(),
         Prepared::new(next, false).unwrap(),
