@@ -1,0 +1,37 @@
+{
+  "root_files": [
+    ".gitignore",
+    "AGENTS.md",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "Cargo.lock",
+    "Cargo.toml",
+    "LICENSE",
+    "README.md",
+    "rust-toolchain.toml"
+  ],
+  "directories": [
+    ".github",
+    ".githooks",
+    "archive",
+    "docs",
+    "examples",
+    "licenses",
+    "scripts",
+    "sessions",
+    "src",
+    "tests"
+  ],
+  "scripts": [
+    ".githooks/pre-commit",
+    ".githooks/pre-push",
+    "scripts/check-docs.py",
+    "scripts/check-live-controls.py",
+    "scripts/check-live.py",
+    "scripts/check-terminal.py",
+    "scripts/check_publication.py",
+    "scripts/render-docs.py",
+    "scripts/test_publication.py"
+  ],
+  "binary_artwork": []
+}

@@ -80,6 +80,11 @@ The local library, working recovery, manual EQ restore and crossover controls ar
 The full PA2 function plan remains incomplete.
 There is no claim of proprietary dbx algorithm equivalence.
 
+The requested [phase/delay alignment workflow](docs/PHASE_ALIGNMENT.md) will add
+reference/mic measurement and guided delay/polarity decisions. Develop the PA
+module here for standalone use and later integration into GigPies; measurement,
+automatic alignment and that integration remain pending.
+
 General matrices, advanced routing, eight-point positional RTA and the later
 nine-channel arrangement remain [future work](docs/FUTURE.md).
 

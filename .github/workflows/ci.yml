@@ -2,6 +2,8 @@ name: Rust checks
 on: [push, pull_request]
 permissions:
   contents: read
+env:
+  CARGO_INCREMENTAL: 0
 jobs:
   check:
     strategy:
@@ -12,6 +14,9 @@ jobs:
       # Checkout v7 runs on Node 24 supplied by the GitHub-hosted runner.
       # This Rust project has no application Node runtime dependency.
       - uses: actions/checkout@v7.0.1
+      - name: Check publication boundaries
+        run: python3 scripts/check_publication.py
+      - run: python3 -m unittest discover -s scripts -p 'test_*.py'
       - run: sudo apt-get update && sudo apt-get install -y libasound2-dev pkg-config
       - name: Install pinned Rust
         run: rustup toolchain install 1.97.1 --profile minimal --component rustfmt --component clippy

@@ -4,6 +4,16 @@ Application **0.2.0-alpha.1** uses processing schema **v3** and library/working
 envelopes **v2**. These version numbers are independent. See [release notes](../CHANGELOG.md)
 and the [release verification](verification/0007-0.2-alpha.md).
 
+## Requested next measurement capability — phase and delay alignment
+
+The [phase-alignment task](PHASE_ALIGNMENT.md), recorded on 2026-10-02, extends
+P4/P5 with synchronized reference/setup-mic measurement and a bounded delay/polarity
+proposal stage. Pink generation and pair controls already exist; measurement and
+automatic alignment remain pending. RTA magnitude alone cannot supply this analysis.
+Develop and validate the capability in SHR PA, with the finished PA module intended
+for later GigPies integration. Standalone operation remains supported. No new DSP,
+integration or physical validation was performed when recording this task.
+
 ## Working offline
 
 - Hardware-independent, synchronous 2-input/six-output Rust engine with bounded,

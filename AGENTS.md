@@ -12,6 +12,15 @@ RTA and the later nine-channel arrangement are future work; do not make them
 prerequisites or infer their roles. See docs/DRIVERACK_MAP.md and docs/FUTURE.md.
 Do not add live audio or change host audio settings as planning/scaffold work.
 
+## Modular development and next measurement work
+
+SHR PA owns the PA module intended for later integration into GigPies. Develop and
+validate PA processing and measurement here while retaining standalone operation.
+Read docs/PHASE_ALIGNMENT.md when continuing measurement, P4/P5 setup or alignment
+work: it records the requested reference/mic phase measurement and delay/polarity
+alignment tasks, acceptance criteria and future GigPies boundary. Integration is
+planned; do not duplicate this implementation in GigPies or assume it already exists.
+
 ## Validation
 
 The agent owns test classification and selection. Keep fast production unit,
@@ -29,3 +38,10 @@ repeatedly imposing them. Report test classes run and intentionally skipped.
 
 Normal commands are in docs/VALIDATION.md. No tests may open hardware implicitly.
 Use the pinned toolchain. Keep changes standalone and avoid sibling dependencies.
+
+## Publication
+
+Follow docs/PUBLICATION.md before committing or pushing. Keep user state, private
+media and generated artifacts untracked. Enable the versioned hooks when absent;
+review new scripts in scripts/publication-policy.json and run the complete-index
+publication guard. One-off bench runners belong in ignored artifacts/.

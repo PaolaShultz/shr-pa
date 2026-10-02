@@ -131,6 +131,12 @@ The four-position sequence is ordinary PA2 measurement coverage using one moved
 microphone. The requested **eight-point positional RTA**, including possible
 simultaneous microphones, is separate future work.
 
+The requested [phase/delay alignment extension](PHASE_ALIGNMENT.md) adds a
+reference/mic transfer-function measurement in P4 and a delay/polarity proposal
+stage in P5, using D10 and supporting M09. It is our additional development task,
+not an assertion of automatic phase alignment in the PA2 reference. SHR PA owns
+this work for its standalone processor and eventual GigPies module integration.
+
 ## D. Presets, controls and system functions
 
 | ID / reference | SHR PA plan | Acceptance / stage |

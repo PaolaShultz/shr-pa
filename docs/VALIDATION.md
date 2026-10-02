@@ -3,6 +3,8 @@
 ## Normal production checks
 
 ```sh
+python3 scripts/check_publication.py
+python3 -m unittest discover -s scripts -p 'test_*.py'
 python3 scripts/check-docs.py
 cargo fmt --all -- --check
 cargo clippy --locked --all-targets -- -D warnings
@@ -109,6 +111,11 @@ and actual workload with every result. A passing soak is evidence under those
 conditions, not a guarantee of flawless operation in every venue.
 
 ## Release checks
+
+Enable the [publication hooks](PUBLICATION.md) after checking for existing hooks.
+The publication guard checks staged Git contents; stage the reviewed files before
+running it. Its synthetic tests cover force-added private paths, staged secrets,
+renamed media, symlinks and leaks removed by a later outgoing commit.
 
 Before publication, run all normal commands above, check `--version`, and exercise
 [offline and software-null examples](RUNNING.md) with fresh temporary paths.

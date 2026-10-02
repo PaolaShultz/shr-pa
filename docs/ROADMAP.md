@@ -125,8 +125,14 @@ peak hold, display offset and readable views. Begin FFT-size experiments off the
 audio path. Add deterministic white noise, pink shaping and a controlled sweep
 source for P5. Generate excitation in bounded render work, outside any display loop.
 
+The requested [phase-alignment extension](PHASE_ALIGNMENT.md) also needs a
+synchronized excitation reference, complex transfer function, arrival estimates
+and coherence/confidence checks. Preserve relative timing across speaker captures;
+an RTA display does not satisfy this measurement requirement.
+
 **Exit:** tone/noise/calibration tests, all display controls, generator level and
-insertion-point tests, startup/cancel/fault stop, and real single-mic capture.
+insertion-point tests, startup/cancel/fault stop, phase/timing reference tests,
+and real single-mic capture.
 
 ## P5 — setup, level balancing, AutoEQ and tuning profiles
 
@@ -135,6 +141,13 @@ configurations before relying on profiles. Define a profile format for speakers
 and amplifiers with units, provenance and validation. Allow manual/unlisted equipment.
 Apply speaker EQ, crossover, polarity, delay and limiter settings through the same
 validated configuration path; do not invent manufacturer tunings.
+
+Implement the [delay/polarity alignment stage](PHASE_ALIGNMENT.md) here using P4
+measurements and existing pair controls. Keep unchanged settings eligible, reject
+unsupported or ambiguous corrections, and verify the combined response at several
+sequential positions. Keep this stage separate from AutoEQ. SHR PA owns the finished
+PA module intended for GigPies integration; that integration is a later task and
+does not gate standalone development or testing.
 
 For level balancing, measure the relevant speakers/bands, estimate differences,
 and either guide physical adjustment or apply bounded, visible trims. Check noise,
@@ -151,7 +164,8 @@ Compose setup, level-only, EQ-only, combined and feedback stages into a cancella
 wizard. Support rerunning one stage on the existing configuration or starting a
 new setup; retain completed work and remember selections/name preferences.
 
-**Exit:** synthetic known-response and poor-data cases, calibration/trim tests,
+**Exit:** synthetic known-response and poor-data cases, delay/polarity alignment
+and unchanged-baseline tests, calibration/trim tests,
 all configuration paths, cancel/retry/partial rerun, then repeatable venue evidence.
 
 ## P6 — feedback suppression and subharmonic synthesis

@@ -19,6 +19,7 @@ software-null examples; hardware qualification is a separate activity.
 ## Develop and release
 
 - [Contributing](../CONTRIBUTING.md) and [working agreements](../AGENTS.md).
+- [Publication boundaries](PUBLICATION.md): private data, reviewed scripts and Git hooks.
 - [Validation](VALIDATION.md): normal production checks and opt-in research/hardware work.
 - [Release notes](../CHANGELOG.md) and [0.2 alpha verification](verification/0007-0.2-alpha.md).
 - [Evidence index](verification/README.md): all dated records and their scope.
@@ -28,6 +29,8 @@ software-null examples; hardware qualification is a separate activity.
 - [Generator off/on verification](verification/0011-generator-capture-restore.md): bounded capture restoration and source continuity.
 - [DriveRack function map](DRIVERACK_MAP.md): complete 42-ID PA2 target inventory.
 - [Roadmap](ROADMAP.md): feature groups, remaining requirements and exit criteria.
+- [Phase and delay alignment](PHASE_ALIGNMENT.md): pending reference/mic measurement,
+  delay/polarity decisions, validation and eventual GigPies module integration.
 - [Future scope](FUTURE.md): general routing, eight-point positional RTA and the
   undefined later nine-channel arrangement.
 

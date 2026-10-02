@@ -17,6 +17,7 @@ current release state. [STATUS](../STATUS.md) summarizes today's implementation.
 | [0009 — generator level](0009-generator-level.md), 2026-09-30 | M03 session-start source peak level, rejection, six-output scaling/limiting and software-null checks | Application/schema versions unchanged |
 | [0010 — runtime generator level](0010-runtime-generator-level.md), 2026-09-30 | M03 live level controls, bounded ramps and software-null integration | Application/schema versions unchanged |
 | [0011 — generator off/on](0011-generator-capture-restore.md), 2026-09-30 | M03 bounded capture restoration, continuing source state and software-null controls | Application/schema versions unchanged |
+| [0012 — phase plan and publication](0012-phase-plan-publication.md), 2026-10-03 | Pending alignment task, modular GigPies intent, publication protection and normal checks | Application/DSP unchanged |
 
 Only 0003 contains successful physical audio trials. They do not qualify the
 later full workload, independent crossover controls or physical response. None
