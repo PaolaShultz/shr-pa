@@ -325,8 +325,18 @@ from a preset. Without that option, the mapped physical capture feeds the DSP.
   2 2 0,1 0,1,-,-,-,- 10 --unmute --signal=sine:1000
 ```
 
-Startup primes ALSA with silence. Partial I/O advances by frames; EINTR/EAGAIN
-are retried with bounded waits, and no progress for two seconds is an error.
+Startup primes ALSA with `buffer - period` frames of silence. At the development
+128/512-frame settings this is 384 frames (8 ms), before converter/USB and other
+host timing. Buffer capacity and the chosen prefill are distinct latency costs;
+the existing prefill policy is not minimum-latency qualification.
+
+Before a transfer, the driver checks that ALSA has the entire remaining block
+available. It does not consume an early partial capture block and then wait for
+the full period's `avail_min`, which can skip the next period interrupt. Genuine
+partial I/O still advances by frames; EINTR/EAGAIN are retried with bounded waits,
+and no progress for two seconds is an error. See the
+[pacing regression](verification/0015-transfer-pacing.md). This fix has offline
+and software-null validation; standalone physical latency remains unqualified.
 Normal/keyboard/signal shutdown ramps mutes and flushes silence before dropping
 both streams. Xruns, suspend, disconnect and numerical faults end the session,
 drop both streams and require an **explicit restart** (which renegotiates and

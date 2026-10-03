@@ -270,9 +270,13 @@ impl std::error::Error for Stopped {}
 
 /// Pure transfer driver, shared by ALSA and deterministic fault/partial-I/O tests.
 /// Offsets/counts are frames; waits and stop checks are bounded by the caller.
+/// Wait for the complete remaining block before consuming any available frames.
+/// Otherwise an early short read can move capture's application pointer past the
+/// period boundary and make a period-sized avail_min wait skip the next wakeup.
 pub fn transfer_frames(
     frames: usize,
     mut stopped: impl FnMut() -> bool,
+    mut available: impl FnMut() -> alsa::Result<usize>,
     mut io: impl FnMut(usize) -> alsa::Result<usize>,
     mut wait: impl FnMut() -> alsa::Result<bool>,
 ) -> Result<()> {
@@ -282,7 +286,13 @@ pub fn transfer_frames(
         if stopped() {
             return Err(Box::new(Stopped));
         }
-        match io(offset) {
+        match available().and_then(|n| {
+            if n >= frames - offset {
+                io(offset)
+            } else {
+                Ok(0)
+            }
+        }) {
             Ok(n) if n > frames - offset => return Err("PCM returned too many frames".into()),
             Ok(n) if n > 0 => {
                 offset += n;
@@ -321,6 +331,7 @@ fn transfer(
     transfer_frames(
         buffer.len() / frame_bytes,
         || shared.stop.load(Ordering::Relaxed),
+        || pcm.avail_update().map(|frames| frames as usize),
         |offset| {
             let offset = offset * frame_bytes;
             if capture {

@@ -138,6 +138,7 @@ fn partial_io_retries_preserve_offsets_and_faults_stop_immediately() {
     transfer_frames(
         7,
         || false,
+        || Ok(usize::MAX),
         |offset| {
             offsets.push(offset);
             results.next().unwrap()
@@ -155,6 +156,7 @@ fn partial_io_retries_preserve_offsets_and_faults_stop_immediately() {
         let error = transfer_frames(
             7,
             || false,
+            || Ok(usize::MAX),
             |_| {
                 calls += 1;
                 Err(alsa::Error::new("test", errno))
@@ -165,8 +167,130 @@ fn partial_io_retries_preserve_offsets_and_faults_stop_immediately() {
         assert_eq!(calls, 1);
         assert_eq!(error.downcast_ref::<alsa::Error>().unwrap().errno(), errno);
     }
-    assert!(transfer_frames(1, || true, |_| panic!("stopped"), || Ok(true)).is_err());
-    assert!(transfer_frames(1, || false, |_| Ok(2), || Ok(true)).is_err());
+    assert!(
+        transfer_frames(
+            1,
+            || true,
+            || panic!("stopped before availability"),
+            |_| panic!("stopped"),
+            || Ok(true)
+        )
+        .is_err()
+    );
+    assert!(transfer_frames(1, || false, || Ok(1), |_| Ok(2), || Ok(true)).is_err());
+}
+
+#[test]
+fn full_block_availability_avoids_skipping_a_period_after_early_capture() {
+    use shr_pa::transport::transfer_frames;
+    use std::cell::Cell;
+
+    // 48 frames arrive during 1 ms of processing after the previous read. Period
+    // interrupts arrive every 384 frames. ALSA wait requires avail_min=384 even
+    // if an eager read has left fewer frames needed to finish this block.
+    let run = |gate: bool| {
+        let produced = Cell::new(48usize);
+        let consumed = Cell::new(0usize);
+        let next_irq = Cell::new(384usize);
+        let interrupts = Cell::new(0usize);
+        let mut copied = Vec::new();
+        let mut offsets = Vec::new();
+        transfer_frames(
+            384,
+            || false,
+            || {
+                Ok(if gate {
+                    produced.get() - consumed.get()
+                } else {
+                    // Control case: bypass the new gate to reproduce eager reads.
+                    usize::MAX
+                })
+            },
+            |offset| {
+                offsets.push(offset);
+                let n = (384 - offset).min(produced.get() - consumed.get());
+                if n == 0 {
+                    return Err(alsa::Error::new("read", 11));
+                }
+                copied.extend(consumed.get()..consumed.get() + n);
+                consumed.set(consumed.get() + n);
+                Ok(n)
+            },
+            || {
+                while produced.get() - consumed.get() < 384 {
+                    produced.set(next_irq.get());
+                    next_irq.set(next_irq.get() + 384);
+                    interrupts.set(interrupts.get() + 1);
+                }
+                Ok(true)
+            },
+        )
+        .unwrap();
+        assert_eq!(copied, (0..384).collect::<Vec<_>>());
+        (produced.get(), interrupts.get(), offsets)
+    };
+    assert_eq!(run(false), (768, 2, vec![0, 48, 48]));
+    assert_eq!(run(true), (384, 1, vec![0]));
+}
+
+#[test]
+fn availability_gate_preserves_partial_offsets_retries_faults_and_stop() {
+    use shr_pa::transport::transfer_frames;
+    use std::cell::Cell;
+
+    let mut available = [
+        Ok(7),
+        Ok(3),
+        Err(alsa::Error::new("avail", 4)),
+        Ok(5),
+        Ok(4),
+    ]
+    .into_iter();
+    let mut returned = [2, 1, 4].into_iter();
+    let mut offsets = Vec::new();
+    let mut waits = 0;
+    transfer_frames(
+        7,
+        || false,
+        || available.next().unwrap(),
+        |offset| {
+            offsets.push(offset);
+            Ok(returned.next().unwrap())
+        },
+        || {
+            waits += 1;
+            Err(alsa::Error::new("interrupted wait", 4))
+        },
+    )
+    .unwrap();
+    assert_eq!(offsets, [0, 2, 3]);
+    assert_eq!(waits, 2);
+
+    for errno in [32, 86, 19, 5] {
+        let error = transfer_frames(
+            384,
+            || false,
+            || Err(alsa::Error::new("avail", errno)),
+            |_| panic!("availability fault precedes I/O"),
+            || panic!("availability fault must not wait"),
+        )
+        .unwrap_err();
+        assert_eq!(error.downcast_ref::<alsa::Error>().unwrap().errno(), errno);
+    }
+    let stopped = Cell::new(false);
+    assert!(
+        transfer_frames(
+            384,
+            || stopped.get(),
+            || Ok(48),
+            |_| panic!("never consume partial capture"),
+            || {
+                stopped.set(true);
+                Ok(false)
+            },
+        )
+        .is_err()
+    );
 }
 
 #[test]

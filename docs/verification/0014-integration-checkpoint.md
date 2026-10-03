@@ -51,7 +51,7 @@ path, not analogue DAC output or speaker response.
 
 ## Final device-transfer soak and recovery
 
-The later accepted host configuration uses **384-frame periods, a 3072-frame
+The later bench configuration uses **384-frame periods, a 3072-frame
 buffer and 768 frames (16 ms) of wet admission**, still stereo 48 kHz S32_LE.
 The smaller-buffer failures and failed 8 ms admission target remain in the
 owning host evidence; this result does not qualify those configurations.
@@ -91,6 +91,11 @@ with correlation 0.799 and a reference/capture offset of 2739 frames (57.0625 ms
 That offset includes 2688 frames of playback prefill, start-call uncertainty,
 USB transport and converters. It is not isolated converter or capture-to-speaker
 latency.
+
+The user subsequently rejected this roughly 57 ms offset for live operation;
+56 ms is the configured prefill alone. This record establishes bounded bench
+continuity and routing, not acceptable live latency. Subsequent pacing and
+smaller-buffer work is separate from the measurements above.
 
 The unchanged v7 integrated host then ran generated-only PA/FX/recording for
 12 s / 576,000 frames. All eight PCM/direct-ADC hashes, dry/DAC replay and

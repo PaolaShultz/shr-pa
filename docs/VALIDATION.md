@@ -18,6 +18,7 @@ The Rust suite covers complex crossover response/sum/phase, all layouts,
 mono bass, delays, gain/polarity, PEQ response, limiter ceiling/release/linking,
 mute ramps, meters, numerical faults, block boundaries and render allocations.
 It also checks mapping, PCM conversion, partial transfers/error classification,
+complete-block availability before capture and the skipped-period regression,
 validated atomic presets, deterministic WAV output, editor controls, page bounds,
 navigation, resize behavior and headless CLI errors. The Linux
 pseudo-terminal check covers keyboard navigation, touch exit, Ctrl+C, termination
@@ -96,7 +97,9 @@ cargo run --release --locked --example processing-load -- 30
 These are not run by `cargo test` or CI. The smoke script opens the specified
 card, tests startup-muted capture, SIGTERM/reopen and terminal mute/exit behavior.
 See [first-slice evidence](verification/0003-engine.md). No analog loopback is
-connected, so analog latency cannot be inferred from these timings.
+connected in that historical record, so analog latency cannot be inferred from
+those timings. Later bounded electrical-return findings belong to the
+[integration checkpoint](verification/0014-integration-checkpoint.md).
 
 Hardware streaming, exhaustive parameter sweeps, long thermal/latency soaks,
 feedback auditions and measurement renderers must be explicit opt-in commands.

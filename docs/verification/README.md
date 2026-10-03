@@ -20,6 +20,7 @@ current release state. [STATUS](../STATUS.md) summarizes today's implementation.
 | [0012 — phase plan and publication](0012-phase-plan-publication.md), 2026-10-03 | Pending alignment task, modular GigPies intent, publication protection and normal checks | Application/DSP unchanged |
 | [0013 — native f64 embedding](0013-embedding.md), 2026-10-03 | Shared DSP f64 boundary, versioned C ABI, faults, precision and normal checks | Fixed full-range embedding; physical integration owned by GigPies |
 | [0014 — USB integration checkpoint](0014-integration-checkpoint.md), 2026-10-03 | Coordinator-reported AudioBox USB integration, exact dry/recording checks and faults | 8 ms target failed; 16 ms with larger buffers passed 600 s; bounded left electrical return verified, right unresolved; GigPies owns acceptance |
+| [0015 — standalone transfer pacing](0015-transfer-pacing.md), 2026-10-03 | Full-block availability before transfer, partial/retry/stop regressions and normal checks | DSP/ABI unchanged; physical low-latency acceptance remains separate |
 
 0003 contains standalone physical audio trials; 0014 records a later GigPies
 integration checkpoint including a bounded left electrical return. They do not

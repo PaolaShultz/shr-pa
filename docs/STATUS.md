@@ -25,7 +25,7 @@ regressions are part of the normal suite. See [verification](verification/0013-e
 GigPies owns integrated USB/network/recording measurements. Its subsequent
 [hardware results](verification/0014-integration-checkpoint.md) exercised this
 fixed full-range library on AudioBox USB 96 at 48 kHz. Final 384-frame periods,
-3072-frame buffers and 16 ms wet admission passed 600 s / 28.8 million frames
+3072-frame buffers and 16 ms wet admission passed a 600 s / 28.8 million-frame bench
 with exact dry/DAC replay, recording hashes and journal, and zero xruns, missing
 or expired wet packets, or queue errors. Repeated packet-fault/Brain-restart
 trials preserved local continuity; a forced driver stall correctly stopped with
@@ -36,6 +36,14 @@ settings; the right route remains unresolved and the user directs use of the
 working channel. The measured reference/capture offset includes prefill and
 does not isolate converter latency. Configurable embedding, acoustic acceptance
 and alignment remain pending.
+
+The user rejected the roughly 57 ms electrical reference/capture offset for live
+use; 56 ms came from that bench configuration's prefill. Its continuity checks
+do not establish acceptable live latency. The standalone
+[capture pacing fix](verification/0015-transfer-pacing.md) now waits for a full
+block before reading, avoiding an extra period wait after early partial reads.
+It is offline/software-null validated; smaller-buffer physical acceptance and
+the integrating host's latency work remain separate.
 
 ## Working offline
 
@@ -71,7 +79,8 @@ Changing source type during a session and measurement workflows remain pending.
 
 Direct ALSA negotiation, independent native-format conversion, explicit input
 and logical-to-physical output selection, silence for unused physical channels,
-partial transfers, startup priming, bounded waits and shutdown. Xruns/suspend,
+complete-block availability checks, partial transfers, startup priming, bounded
+waits and shutdown. Xruns/suspend,
 disconnect and numerical faults stop both streams; explicit restart is required.
 Live terminal has all implemented module controls, six ramped mutes, peaks,
 compression/limiting reduction, physical mappings and modified/pending/fault status.
