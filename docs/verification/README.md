@@ -19,8 +19,10 @@ current release state. [STATUS](../STATUS.md) summarizes today's implementation.
 | [0011 — generator off/on](0011-generator-capture-restore.md), 2026-09-30 | M03 bounded capture restoration, continuing source state and software-null controls | Application/schema versions unchanged |
 | [0012 — phase plan and publication](0012-phase-plan-publication.md), 2026-10-03 | Pending alignment task, modular GigPies intent, publication protection and normal checks | Application/DSP unchanged |
 | [0013 — native f64 embedding](0013-embedding.md), 2026-10-03 | Shared DSP f64 boundary, versioned C ABI, faults, precision and normal checks | Fixed full-range embedding; physical integration owned by GigPies |
+| [0014 — USB integration checkpoint](0014-integration-checkpoint.md), 2026-10-03 | Coordinator-reported AudioBox USB integration, exact dry/recording checks and faults | 8 ms wet target failed; revised 16 ms final soak pending at checkpoint; GigPies owns final acceptance |
 
-Only 0003 contains successful physical audio trials. They do not qualify the
-later full workload, independent crossover controls or physical response. None
+0003 contains standalone physical audio trials; 0014 records a later GigPies
+integration checkpoint. They do not qualify the complete current workload,
+independent crossover controls or physical response. None
 of these records establishes analog loopback latency, acoustic response, speaker
 protection, power-cut durability or long-soak acceptance. UMC1820 remains untested.

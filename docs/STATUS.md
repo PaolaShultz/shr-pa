@@ -22,8 +22,14 @@ Logical 0/1 carry L/R with unity gain, the existing −1 dBFS sample limiter and
 5 ms startup ramp; 2–5 are silent. The same core now accepts f32 or native f64
 buffers. ABI bounds, numerical faults, precision, protection and allocation
 regressions are part of the normal suite. See [verification](verification/0013-embedding.md).
-GigPies owns integrated USB/network/recording measurements; this module change
-adds no hardware evidence. Configurable embedding and alignment remain pending.
+GigPies owns integrated USB/network/recording measurements. Its subsequent
+[hardware checkpoint](verification/0014-integration-checkpoint.md) exercised this
+fixed full-range library on AudioBox USB 96 at 48 kHz, 192-frame periods and
+768-frame buffers. A 600 s trial preserved dry/recording continuity with zero
+xruns, but one late wet return failed the 8 ms admission target. An explicit
+16 ms revision passed 30 s; repeated faults and its final soak were pending at
+the checkpoint. The owning result is GigPies `docs/AUDIO_HARDWARE.md`.
+Configurable embedding, acoustic acceptance and alignment remain pending.
 
 ## Working offline
 
