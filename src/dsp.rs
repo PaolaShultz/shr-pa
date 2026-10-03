@@ -396,6 +396,31 @@ fn cascade(filters: &mut [Filter], mut x: f64) -> f64 {
     }
     x
 }
+// Both public sample formats share the same processing and fault path. Conversion
+// happens only at the boundary; f64 hosts never pass through an f32 audio buffer.
+trait Sample: Copy {
+    const ZERO: Self;
+    fn to_f64(self) -> f64;
+    fn from_f64(value: f64) -> Self;
+}
+impl Sample for f32 {
+    const ZERO: Self = 0.;
+    fn to_f64(self) -> f64 {
+        f64::from(self)
+    }
+    fn from_f64(value: f64) -> Self {
+        value as f32
+    }
+}
+impl Sample for f64 {
+    const ZERO: Self = 0.;
+    fn to_f64(self) -> f64 {
+        self
+    }
+    fn from_f64(value: f64) -> Self {
+        value
+    }
+}
 impl Engine {
     pub fn new(c: Config) -> Result<Self, &'static str> {
         let p = Prepared::new(c, false)?;
@@ -535,7 +560,22 @@ impl Engine {
         input: &[[f32; 2]],
         output: &mut [[f32; 6]],
     ) -> Result<(), &'static str> {
-        output.fill([0.; 6]);
+        self.render_samples(input, output)
+    }
+    /// Native f64 boundary, with the same processing, bounds and latched faults as render.
+    pub fn render_f64(
+        &mut self,
+        input: &[[f64; 2]],
+        output: &mut [[f64; 6]],
+    ) -> Result<(), &'static str> {
+        self.render_samples(input, output)
+    }
+    fn render_samples<S: Sample>(
+        &mut self,
+        input: &[[S; 2]],
+        output: &mut [[S; 6]],
+    ) -> Result<(), &'static str> {
+        output.fill([S::ZERO; 6]);
         if input.len() != output.len() || input.len() > self.config.max_block {
             return Err("render shape exceeds prepared block or differs");
         }
@@ -551,15 +591,15 @@ impl Engine {
             if self.meters.fault {
                 continue;
             }
-            if frame.iter().any(|x| !x.is_finite()) {
+            let mut x = frame.map(S::to_f64);
+            if x.iter().any(|x| !x.is_finite()) {
                 self.meters.fault = true;
                 continue;
             }
-            for (ch, &x) in frame.iter().enumerate() {
-                self.meters.input_peak[ch] = self.meters.input_peak[ch].max(x.abs());
+            for (ch, &x) in x.iter().enumerate() {
+                self.meters.input_peak[ch] = self.meters.input_peak[ch].max(x.abs() as f32);
                 self.meters.clips[ch] |= x.abs() >= 1.;
             }
-            let mut x = frame.map(f64::from);
             if self.config.input_mode == InputMode::MonoLeft {
                 x[1] = x[0];
             }
@@ -682,8 +722,9 @@ impl Engine {
                         (target - self.ramps[ch]).clamp(-self.ramp_step, self.ramp_step);
                     let sample = delayed * guard * self.ramps[ch];
                     let active = self.config.active_pair(pair);
-                    out[ch] = if active { sample as f32 } else { 0. };
-                    self.meters.output_peak[ch] = self.meters.output_peak[ch].max(out[ch].abs());
+                    out[ch] = if active { S::from_f64(sample) } else { S::ZERO };
+                    self.meters.output_peak[ch] =
+                        self.meters.output_peak[ch].max(out[ch].to_f64().abs() as f32);
                 }
             }
             if self.transition > 0 {
@@ -694,7 +735,7 @@ impl Engine {
             }
         }
         if self.meters.fault {
-            output.fill([0.; 6]);
+            output.fill([S::ZERO; 6]);
             self.meters.output_peak = [0.; 6];
         }
         Ok(())

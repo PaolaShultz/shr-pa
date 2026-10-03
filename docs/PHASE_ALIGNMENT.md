@@ -8,8 +8,9 @@ delays. This document adds no implementation or hardware acceptance claim.
 Develop and validate this capability here in SHR PA. The user's system is modular:
 GigPies is intended to integrate the finished PA module. Keep the PA DSP, measurement
 and alignment rules owned here rather than creating a second implementation in
-GigPies. SHR PA must remain independently usable; the integration interface and
-packaging will be defined when that integration is built.
+GigPies. SHR PA must remain independently usable. Fixed full-range processing
+now has an [embedding interface](EMBEDDING.md); the measurement integration
+interface and packaging will be defined when that capability is built.
 
 ## Pending work
 
@@ -133,7 +134,9 @@ results, proposals and bounded application of settings through a documented cont
 Preserve the standalone SHR PA host and controls. Do not make GigPies a prerequisite
 for developing or testing PA behavior.
 
-Embedding a library versus another integration boundary remains to be decided.
+The [version 1 embedding interface](EMBEDDING.md), implemented after this plan,
+now exposes fixed full-range PA processing. Measurement/configuration integration
+still needs its own contract; version 1 does not implement those capabilities.
 Keep schemas, latency, protection, cancellation, state ownership and fault behavior
 explicit. Select one audio-device owner in an integrated deployment; launching
 separate hosts does not establish synchronized operation. No cross-repository

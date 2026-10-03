@@ -70,6 +70,14 @@ parameter and `x`/`X` edits it. Layout/recall uses mute/reconfigure/resume.
 Presets use schema v3; `migrate OLD NEW` explicitly converts v1/v2 files and old
 library/working envelopes, retaining source files and EQ history. [Full instructions](docs/RUNNING.md).
 
+## Embed the existing PA engine
+
+The release build also produces `libshr_pa.so`. Its [versioned C interface](docs/EMBEDDING.md)
+accepts stereo f64 input and returns six logical f64 outputs using the existing
+full-range engine, startup ramp and sample limiter. The host owns device I/O.
+Standalone operation remains available; physical integration evidence belongs
+to the integrating host.
+
 ## Remaining scope
 
 The [complete PA2 function inventory](docs/DRIVERACK_MAP.md) still tracks automatic EQ
@@ -82,8 +90,8 @@ There is no claim of proprietary dbx algorithm equivalence.
 
 The requested [phase/delay alignment workflow](docs/PHASE_ALIGNMENT.md) will add
 reference/mic measurement and guided delay/polarity decisions. Develop the PA
-module here for standalone use and later integration into GigPies; measurement,
-automatic alignment and that integration remain pending.
+module here for standalone use and integration into GigPies. The fixed full-range
+embedding interface is implemented; measurement and automatic alignment remain pending.
 
 General matrices, advanced routing, eight-point positional RTA and the later
 nine-channel arrangement remain [future work](docs/FUTURE.md).

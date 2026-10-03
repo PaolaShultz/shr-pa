@@ -14,6 +14,17 @@ Develop and validate the capability in SHR PA, with the finished PA module inten
 for later GigPies integration. Standalone operation remains supported. No new DSP,
 integration or physical validation was performed when recording this task.
 
+## Embedding interface — 2026-10-03
+
+The [version 1 C ABI](EMBEDDING.md) exposes the existing full-range PA processor
+as `libshr_pa.so`, accepting stereo f64 and producing six logical f64 outputs.
+Logical 0/1 carry L/R with unity gain, the existing −1 dBFS sample limiter and
+5 ms startup ramp; 2–5 are silent. The same core now accepts f32 or native f64
+buffers. ABI bounds, numerical faults, precision, protection and allocation
+regressions are part of the normal suite. See [verification](verification/0013-embedding.md).
+GigPies owns integrated USB/network/recording measurements; this module change
+adds no hardware evidence. Configurable embedding and alignment remain pending.
+
 ## Working offline
 
 - Hardware-independent, synchronous 2-input/six-output Rust engine with bounded,

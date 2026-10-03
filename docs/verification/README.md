@@ -18,6 +18,7 @@ current release state. [STATUS](../STATUS.md) summarizes today's implementation.
 | [0010 — runtime generator level](0010-runtime-generator-level.md), 2026-09-30 | M03 live level controls, bounded ramps and software-null integration | Application/schema versions unchanged |
 | [0011 — generator off/on](0011-generator-capture-restore.md), 2026-09-30 | M03 bounded capture restoration, continuing source state and software-null controls | Application/schema versions unchanged |
 | [0012 — phase plan and publication](0012-phase-plan-publication.md), 2026-10-03 | Pending alignment task, modular GigPies intent, publication protection and normal checks | Application/DSP unchanged |
+| [0013 — native f64 embedding](0013-embedding.md), 2026-10-03 | Shared DSP f64 boundary, versioned C ABI, faults, precision and normal checks | Fixed full-range embedding; physical integration owned by GigPies |
 
 Only 0003 contains successful physical audio trials. They do not qualify the
 later full workload, independent crossover controls or physical response. None

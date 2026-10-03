@@ -34,7 +34,10 @@ allocates and initializes delay lines, and starts all six mutes closed.
 maximum, including short final blocks. It performs bounded scalar processing
 without allocation, deallocation, locks, filesystem, terminal, or analysis work.
 The allocation regression includes full EQ/delay processing, mute commands and
-numerical faults. Coefficients/state use f64; inputs/outputs use f32. Filter state
+numerical faults. Coefficients/state use f64; the original inputs/outputs use f32.
+`render_f64(&[[f64; 2]], &mut [[f64; 6]])` shares the same processing and faults
+without f32 audio conversion. Approximate meters remain f32. The versioned
+[embedding interface](EMBEDDING.md) uses this native f64 path. Filter state
 below 1e-30 is cleared to prevent persistent denormal tails.
 
 The chain is input peak/clip meter → input mode → gain → 31-band GEQ → eight

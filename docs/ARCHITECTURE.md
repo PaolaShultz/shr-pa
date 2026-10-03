@@ -61,6 +61,13 @@ The DSP is implemented in the library, separate from transport and terminal work
 should support later engine/client separation for remote operation. Do not add
 a network server, async runtime or general graph compiler to this first slice.
 
+The [version 1 embedding interface](EMBEDDING.md) packages the same engine as
+a C ABI shared library. It uses native f64 stereo input/six-output buffers and
+one fixed full-range configuration. An embedding host owns I/O, prefill and
+recovery; the library opens no devices and creates no worker threads. Construction
+and destruction occur outside the exclusive audio worker. The standalone host
+continues to use the existing f32 boundary around the same f64 DSP core.
+
 ## Transport and latency
 
 Negotiate capture and playback independently: their native formats and channel

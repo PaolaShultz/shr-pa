@@ -63,6 +63,11 @@ edits while off. They cover block partitions, coalescing, processing-busy/fault
 precedence, software-null off/resume on all six outputs and allocation counting.
 The compact PTY check covers toggle/level/recall ownership and capture-only rejection.
 These short production tests run by default; they open no physical device.
+The versioned C ABI regressions cover native f64 precision, explicit frame/pointer
+bounds, disjoint buffers, channel identity, startup ramp, limiter linking,
+latched full-block fault silence and recreation. The f32 and f64 entrypoints
+are compared across all six layouts. Allocation counting covers successful,
+faulted and rejected ABI processing. See [embedding](EMBEDDING.md).
 Add analysis isolation and automatic device reconnection regressions with those
 future features.
 

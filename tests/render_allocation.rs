@@ -32,6 +32,49 @@ unsafe impl GlobalAlloc for Counting {
 }
 #[global_allocator]
 static ALLOC: Counting = Counting;
+
+#[test]
+fn native_f64_ffi_processing_faults_and_argument_errors_never_allocate_or_free() {
+    use shr_pa::ffi::*;
+    let handle = shr_pa_v1_create(48000, 128);
+    assert!(!handle.is_null());
+    let mut input = [[0.1_f64, -0.2]; 128];
+    let mut output = [[0_f64; 6]; 128];
+    COUNT.with(|c| c.set(Some(0)));
+    for _ in 0..100 {
+        assert_eq!(
+            unsafe {
+                shr_pa_v1_process(
+                    handle,
+                    input.as_ptr().cast(),
+                    output.as_mut_ptr().cast(),
+                    128,
+                )
+            },
+            SHR_PA_OK
+        );
+    }
+    input[64][0] = f64::NAN;
+    assert_eq!(
+        unsafe {
+            shr_pa_v1_process(
+                handle,
+                input.as_ptr().cast(),
+                output.as_mut_ptr().cast(),
+                128,
+            )
+        },
+        SHR_PA_FAULT
+    );
+    assert_eq!(
+        unsafe { shr_pa_v1_process(handle, input.as_ptr().cast(), output.as_mut_ptr().cast(), 0) },
+        SHR_PA_INVALID_ARGUMENT
+    );
+    let count = COUNT.with(|c| c.replace(None).unwrap());
+    assert_eq!(count, 0);
+    unsafe { shr_pa_v1_destroy(handle) };
+}
+
 #[test]
 fn render_and_mute_commands_never_allocate_or_free() {
     let mut c = shr_pa::config::Config {

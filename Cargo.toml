@@ -8,6 +8,9 @@ publish = false
 repository = "https://github.com/PaolaShultz/shr-pa"
 description = "Highly experimental Raspberry Pi PA management system"
 
+[lib]
+crate-type = ["rlib", "cdylib"]
+
 [dependencies]
 alsa = "0.11"
 crossterm = "=0.26.1"
