@@ -30,9 +30,12 @@ with exact dry/DAC replay, recording hashes and journal, and zero xruns, missing
 or expired wet packets, or queue errors. Repeated packet-fault/Brain-restart
 trials preserved local continuity; a forced driver stall correctly stopped with
 an incomplete take. Earlier smaller-buffer failures and the failed 8 ms target
-remain recorded. GigPies `docs/AUDIO_HARDWARE.md` owns the results. Physical
-output/input cables were connected afterwards; their measurements remain pending
-at this update. Configurable embedding, acoustic acceptance and alignment remain pending.
+remain recorded. GigPies `docs/AUDIO_HARDWARE.md` owns the results. Subsequent
+generated-only probes verified left output to input 1 under the recorded knob
+settings; the right route remains unresolved and the user directs use of the
+working channel. The measured reference/capture offset includes prefill and
+does not isolate converter latency. Configurable embedding, acoustic acceptance
+and alignment remain pending.
 
 ## Working offline
 

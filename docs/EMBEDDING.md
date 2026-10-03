@@ -72,7 +72,9 @@ measurements. SHR PA remains independently buildable and owns PA DSP. This
 interface alone establishes no USB, acoustic or physical-latency acceptance.
 The subsequent [2026-10-03 hardware checkpoint](verification/0014-integration-checkpoint.md)
 records actual USB use, continuity/recovery findings, the failed 8 ms wet target
-and a successful 600 s trial at 16 ms with larger device buffers. Physical
-loopback was connected afterwards and is not yet measured in that record.
+and a successful 600 s trial at 16 ms with larger device buffers. Subsequent
+generated-only probes verified left output to input 1 under bounded conditions;
+the right physical route remains unresolved. Their reference/capture offset
+includes prefill and does not isolate converter latency.
 GigPies `docs/AUDIO_HARDWARE.md` owns acceptance. Measurement/alignment remains the separate
 [planned capability](PHASE_ALIGNMENT.md).

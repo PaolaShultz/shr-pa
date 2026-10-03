@@ -23,8 +23,9 @@ with a 5 ms ramp. `~` turns the selected generator off/on, crossfading to/from
 mapped capture without restarting its sequence.
 
 The 2026-09-29 AudioBox USB 96 trials exercised the stereo transport path. **UMC1820 is a future
-target, not a development prerequisite.** Analog latency and speaker protection
-are unmeasured; no loopback is connected. See the [bench record](docs/verification/0003-engine.md).
+target, not a development prerequisite.** A later [GigPies check](docs/verification/0014-integration-checkpoint.md)
+verified a bounded left-output/input-1 electrical return; the right route remains
+unresolved. Isolated converter latency and speaker protection remain unmeasured.
 
 ## Build and run
 

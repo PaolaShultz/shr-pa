@@ -80,14 +80,30 @@ independent network recovery from a hardware-driver deadline failure that stops
 the local session. GigPies `docs/AUDIO_HARDWARE.md` owns the complete acceptance,
 failure history and reproducible experiment records.
 
+## Bounded electrical-return check
+
+After the device-transfer trials above, the user connected both physical outputs
+to inputs, set both input gains to minimum, Mixer to Playback and Main to noon.
+Separate generated-only PN probes ran for 8 s each at −72 then −54 dBFS with
+384/3072-frame period/buffer settings and no errors. No captured sample was
+routed back to output. Two distinct bursts verified **left output to input 1**,
+with correlation 0.799 and a reference/capture offset of 2739 frames (57.0625 ms).
+That offset includes 2688 frames of playback prefill, start-call uncertainty,
+USB transport and converters. It is not isolated converter or capture-to-speaker
+latency.
+
+The unchanged v7 integrated host then ran generated-only PA/FX/recording for
+12 s / 576,000 frames. All eight PCM/direct-ADC hashes, dry/DAC replay and
+the journal matched exactly, with zero xruns or wet errors. The left 997 Hz
+return gain was −0.674 dB; the right 1499 Hz return was −69.440 dB, about
+68.77 dB below the left. The right route is unusable for acceptance under these
+conditions. The user suspects its cable and directs use of the working channel;
+the measurements do not establish a definite cable or analogue hardware fault.
+
 ## Remaining limits
 
-The device-transfer trials above had no physical return connection. Afterwards,
-the user connected both physical outputs to inputs, set minimum input gain,
-Mixer to Playback and Main to noon. Physical acceptance has not yet been
-measured at this documentation update. The coordinator is preparing a separate
-low-level generated-only test with no ADC feedback route; this connection alone
-does not establish analogue round-trip latency or channel wiring.
+Only the bounded left electrical-return route is verified. The right route,
+isolated converter latency and capture-to-speaker latency remain unresolved.
 The amplifier remains disconnected; acoustic alignment and physical
 speaker protection remain unmeasured. The Superlux USB device is unavailable,
 so this checkpoint includes no independent second-device clock measurement.
