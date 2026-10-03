@@ -23,13 +23,16 @@ Logical 0/1 carry L/R with unity gain, the existing −1 dBFS sample limiter and
 buffers. ABI bounds, numerical faults, precision, protection and allocation
 regressions are part of the normal suite. See [verification](verification/0013-embedding.md).
 GigPies owns integrated USB/network/recording measurements. Its subsequent
-[hardware checkpoint](verification/0014-integration-checkpoint.md) exercised this
-fixed full-range library on AudioBox USB 96 at 48 kHz, 192-frame periods and
-768-frame buffers. A 600 s trial preserved dry/recording continuity with zero
-xruns, but one late wet return failed the 8 ms admission target. An explicit
-16 ms revision passed 30 s; repeated faults and its final soak were pending at
-the checkpoint. The owning result is GigPies `docs/AUDIO_HARDWARE.md`.
-Configurable embedding, acoustic acceptance and alignment remain pending.
+[hardware results](verification/0014-integration-checkpoint.md) exercised this
+fixed full-range library on AudioBox USB 96 at 48 kHz. Final 384-frame periods,
+3072-frame buffers and 16 ms wet admission passed 600 s / 28.8 million frames
+with exact dry/DAC replay, recording hashes and journal, and zero xruns, missing
+or expired wet packets, or queue errors. Repeated packet-fault/Brain-restart
+trials preserved local continuity; a forced driver stall correctly stopped with
+an incomplete take. Earlier smaller-buffer failures and the failed 8 ms target
+remain recorded. GigPies `docs/AUDIO_HARDWARE.md` owns the results. Physical
+output/input cables were connected afterwards; their measurements remain pending
+at this update. Configurable embedding, acoustic acceptance and alignment remain pending.
 
 ## Working offline
 

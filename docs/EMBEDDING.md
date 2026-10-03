@@ -71,7 +71,8 @@ GigPies owns the integrated capture/network/recording host and its actual-device
 measurements. SHR PA remains independently buildable and owns PA DSP. This
 interface alone establishes no USB, acoustic or physical-latency acceptance.
 The subsequent [2026-10-03 hardware checkpoint](verification/0014-integration-checkpoint.md)
-records actual USB use, continuity/recovery findings and the failed 8 ms wet
-admission target, with final revised-budget acceptance still owned by GigPies
-`docs/AUDIO_HARDWARE.md`. Measurement/alignment remains the separate
+records actual USB use, continuity/recovery findings, the failed 8 ms wet target
+and a successful 600 s trial at 16 ms with larger device buffers. Physical
+loopback was connected afterwards and is not yet measured in that record.
+GigPies `docs/AUDIO_HARDWARE.md` owns acceptance. Measurement/alignment remains the separate
 [planned capability](PHASE_ALIGNMENT.md).
