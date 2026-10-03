@@ -76,5 +76,14 @@ and a successful 600 s trial at 16 ms with larger device buffers. Subsequent
 generated-only probes verified left output to input 1 under bounded conditions;
 the right physical route remains unresolved. Their reference/capture offset
 includes prefill and does not isolate converter latency.
+The later [low-latency diagnosis](verification/0016-low-latency-integration.md)
+records short measurements around 5.19–5.35 ms with zero silent prefill, retained
+reliability failures, and a traced kernel page-migration wait during PA processing.
+The measured library is unchanged. H7 held 5.1875 ms in every analyzed window of
+a 600 s run without USB xruns, but two late wet returns failed 4 ms admission.
+H8's 6 ms wet admission passed 600 s with exact digital replay and zero losses.
+Its physical offset ranged over 249–251 frames, with two weak windows and small
+offset changes that still require qualification. All temporary settings were
+restored; this does not establish complete live or acoustic acceptance.
 GigPies `docs/AUDIO_HARDWARE.md` owns acceptance. Measurement/alignment remains the separate
 [planned capability](PHASE_ALIGNMENT.md).

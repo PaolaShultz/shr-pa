@@ -24,7 +24,7 @@ buffers. ABI bounds, numerical faults, precision, protection and allocation
 regressions are part of the normal suite. See [verification](verification/0013-embedding.md).
 GigPies owns integrated USB/network/recording measurements. Its subsequent
 [hardware results](verification/0014-integration-checkpoint.md) exercised this
-fixed full-range library on AudioBox USB 96 at 48 kHz. Final 384-frame periods,
+fixed full-range library on AudioBox USB 96 at 48 kHz. The earlier 384-frame periods,
 3072-frame buffers and 16 ms wet admission passed a 600 s / 28.8 million-frame bench
 with exact dry/DAC replay, recording hashes and journal, and zero xruns, missing
 or expired wet packets, or queue errors. Repeated packet-fault/Brain-restart
@@ -44,6 +44,25 @@ do not establish acceptable live latency. The standalone
 block before reading, avoiding an extra period wait after early partial reads.
 It is offline/software-null validated; smaller-buffer physical acceptance and
 the integrating host's latency work remain separate.
+
+The subsequent [low-latency diagnosis](verification/0016-low-latency-integration.md)
+records short GigPies trials around 5.19–5.35 ms with 48-frame blocks and zero
+silent prefill, alongside failed reliability trials. A kernel trace identified a
+6.219611 ms wait for page migration at a PA library function-address load despite
+process memory locking. It did not identify DSP allocation or soundcard delay.
+The H7 comparison temporarily excluded locked pages from ordinary compaction,
+with verified restoration after each trial. Its 600 s / 28.8 million-frame run
+had no USB xruns or queue drops, and all 11977 physical windows measured exactly
+5.1875 ms. Two late wet returns failed the 4 ms admission gate, with 189 DAC
+sample differences from uninterrupted replay.
+
+H8's 6 ms wet admission then passed a 600 s / 28.8 million-frame digital trial:
+zero xruns, wet losses, queue drops or network errors, with exact ADC/stem hashes,
+dry/DAC replay and journals. Physical analysis found 11975 trusted windows at
+249–251 frames (5.1875–5.229167 ms) and two weak windows. Finer analysis found
+two one-frame offset changes; their cause and exact physical continuity remain
+unresolved, so physical qualification stays open. Dry-path settings and the
+measured PA library are unchanged. All temporary settings were restored.
 
 ## Working offline
 
@@ -102,9 +121,10 @@ workload. A 30-second trial had zero xruns, mean render 84.3 µs and maximum
 recorded in [verification](verification/0003-engine.md). These are development
 observations, not venue/long-soak acceptance or minimum-buffer guarantees.
 
-The user confirmed no analog loopback, with outputs connected to an unpowered
-amp. Analog round-trip latency, physical signal response, converter voltage,
-noise floor, acoustic behavior and speaker protection remain unmeasured.
+Those earlier standalone trials had no analog loopback, with outputs connected
+to an unpowered amp. The later GigPies left-channel electrical measurements above
+have their own scope. Converter voltage, noise floor, acoustic behavior and
+speaker protection remain unmeasured.
 
 ## Still pending
 

@@ -21,9 +21,10 @@ current release state. [STATUS](../STATUS.md) summarizes today's implementation.
 | [0013 — native f64 embedding](0013-embedding.md), 2026-10-03 | Shared DSP f64 boundary, versioned C ABI, faults, precision and normal checks | Fixed full-range embedding; physical integration owned by GigPies |
 | [0014 — USB integration checkpoint](0014-integration-checkpoint.md), 2026-10-03 | Coordinator-reported AudioBox USB integration, exact dry/recording checks and faults | 8 ms target failed; 16 ms with larger buffers passed 600 s; bounded left electrical return verified, right unresolved; GigPies owns acceptance |
 | [0015 — standalone transfer pacing](0015-transfer-pacing.md), 2026-10-03 | Full-block availability before transfer, partial/retry/stop regressions and normal checks | DSP/ABI unchanged; physical low-latency acceptance remains separate |
+| [0016 — low-latency integration diagnosis](0016-low-latency-integration.md), 2026-10-03 | Smaller-buffer GigPies trials and traced locked-page migration during PA processing | H8 passed digital checks for 600 s at 6 ms wet admission; physical qualification remains open with two weak windows at offset changes |
 
-0003 contains standalone physical audio trials; 0014 records a later GigPies
-integration checkpoint including a bounded left electrical return. They do not
+0003 contains standalone physical audio trials; 0014 and 0016 record later GigPies
+integration checkpoints including bounded left electrical returns. They do not
 qualify the complete current workload or independent crossover controls. None
 of these records isolates converter latency or establishes acoustic response, speaker
-protection, power-cut durability or long-soak acceptance. UMC1820 remains untested.
+protection, power-cut durability or general live reliability. UMC1820 remains untested.
