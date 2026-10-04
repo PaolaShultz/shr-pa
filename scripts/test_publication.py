@@ -83,5 +83,12 @@ class PublicationTests(unittest.TestCase):
         self.assertIn('user/private.json', result.stderr)
 
 
+    def test_push_rejects_unsafe_index_even_with_no_outgoing_commits(self):
+        self.write('user/private.json', b'{}')
+        self.git('add', '-f', 'user/private.json')
+        result = self.check('--push', stdin='')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('user/private.json', result.stderr)
+
 if __name__ == '__main__':
     unittest.main()

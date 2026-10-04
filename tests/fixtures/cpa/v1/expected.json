@@ -1,0 +1,48 @@
+{
+  "contract": "C-PA:1",
+  "evidence": "E08",
+  "descriptor": {
+    "version": 1,
+    "size": 80,
+    "input_channels": 2,
+    "logical_outputs": 6,
+    "active_output_mask": 3,
+    "silent_output_mask": 60,
+    "physical_io_owned": 0,
+    "sample_format": 1,
+    "fixed_preset": 1,
+    "limiter_kind": 1,
+    "limiter_threshold_millidbfs": -1000,
+    "limiter_linked": 1,
+    "limiter_release_ms": 100,
+    "startup_ramp_ms": 5,
+    "fixed_delay_frames": 0,
+    "min_rate": 8000,
+    "max_rate": 192000,
+    "min_block": 1,
+    "max_block": 8192,
+    "unavailable_capabilities": 15
+  },
+  "healthy_48000_256": {
+    "version": 1,
+    "size": 24,
+    "sample_rate": 48000,
+    "max_block": 256,
+    "fault_latched": 0,
+    "recreate_required": 0
+  },
+  "faulted_48000_256": {
+    "version": 1,
+    "size": 24,
+    "sample_rate": 48000,
+    "max_block": 256,
+    "fault_latched": 1,
+    "recreate_required": 1
+  },
+  "limits": [
+    "synthetic software only",
+    "physical channels host-owned",
+    "no controls or measurement",
+    "sample ceiling only; no acoustic or true-peak claim"
+  ]
+}

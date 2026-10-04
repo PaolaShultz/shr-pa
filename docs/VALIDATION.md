@@ -66,7 +66,10 @@ The compact PTY check covers toggle/level/recall ownership and capture-only reje
 These short production tests run by default; they open no physical device.
 The versioned C ABI regressions cover native f64 precision, explicit frame/pointer
 bounds, disjoint buffers, channel identity, startup ramp, limiter linking,
-latched full-block fault silence and recreation. The f32 and f64 entrypoints
+latched full-block fault silence and recreation. Read-only descriptor/status
+checks cover exact versions/sizes, unchanged invalid outputs, all engine-owned
+heap overlap refusals and zero query allocation. The actual C caller and expected
+E08 corpus commands are in [the corpus](../tests/fixtures/cpa/v1/README.md). The f32 and f64 entrypoints
 are compared across all six layouts. Allocation counting covers successful,
 faulted and rejected ABI processing. See [embedding](EMBEDDING.md).
 Add analysis isolation and automatic device reconnection regressions with those

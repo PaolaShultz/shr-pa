@@ -140,3 +140,31 @@ physical acceptance work remains pending. General matrices, advanced routing,
 eight-point positional RTA and the later nine-channel layout remain [future](FUTURE.md).
 
 [Run commands and controls](RUNNING.md) · [Validation](VALIDATION.md)
+
+## GigPies integration planning — 2026-10-04
+
+[Owning GigPies plan](GIGPIES_IMPLEMENTATION.md) records scoped tasks, contract dependencies,
+validation and launch instructions. This is planned work; existing implementation
+and hardware status above are unchanged.
+
+## PA-01 read-only embedding extension — 2026-10-04
+
+The fixed C-PA:1 interface now exposes an 80-byte capability descriptor and a
+24-byte quiesced handle-health snapshot, preserving the original v1 signatures
+and processing behavior. They report the actual rate/block settings, logical
+active/silent channels, linked sample-limiter scope, latched fault/recreation
+requirement and unavailable configurable controls/measurement/acoustic/true-peak
+capabilities. Invalid query shapes and owned-storage overlap leave output
+unchanged. See [the contract](EMBEDDING.md)
+and [E08 corpus](../tests/fixtures/cpa/v1/README.md) for reproducible software checks.
+
+PA-02 configurable embedding and PA-03 phase measurement remain planned;
+physical channel, acoustic safety and hardware integration acceptance retain
+the limits above. This extension opens no physical endpoint.
+
+PA-01 software checks passed: 70 normal Rust tests, five script tests, fmt,
+warning-denied Clippy, release-linked C caller, docs/publication checks, offline
+terminal recovery and explicit software-null live controls. Fresh version,
+six-channel float WAV, 40×13 snapshot and source-preserving migration checks also
+passed. Historical/long/exhaustive and hardware tests were intentionally skipped.
+The coordinator owns final receiving review and source publication.

@@ -120,7 +120,7 @@ def main():
     args = parser.parse_args()
     try:
         if args.push:
-            _, _, policy = audit()
+            index_failures, _, policy = audit()
             revisions = set()
             for line in sys.stdin:
                 _, local, _, remote = line.split()
@@ -130,7 +130,7 @@ def main():
                     raise ValueError('Invalid pre-push object ID')
                 spec = local if set(remote) == {'0'} else f'{remote}..{local}'
                 revisions.update(git('rev-list', spec).decode().splitlines())
-            failures = []
+            failures = list(index_failures)
             count = 0
             for revision in sorted(revisions):
                 errors, n, _ = audit(revision, policy)

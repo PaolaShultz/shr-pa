@@ -13,6 +13,8 @@ socket or recording file. One host owns physical I/O and maps logical outputs.
 | `shr_pa_v1_create(rate, max_block)` | Controller allocation/preparation; returns an opaque handle or null for invalid settings |
 | `shr_pa_v1_process(handle, input, output, frames)` | Exclusive worker, interleaved stereo f64 input and six-channel f64 output |
 | `shr_pa_v1_delay_frames()` | Zero fixed algorithmic frames for this preset |
+| `shr_pa_v1_descriptor(output, version, size)` | Read-only fixed capabilities; exact version 1 / 80 bytes |
+| `shr_pa_v1_status(handle, output, version, size)` | Quiesced health; exact version 1 / 24 bytes |
 | `shr_pa_v1_destroy(handle)` | Controller destruction after the worker stops; null is safe |
 
 Rates are 8000–192000 Hz. Prepared block sizes are 1–8192 frames; each process
@@ -87,3 +89,35 @@ offset changes that still require qualification. All temporary settings were
 restored; this does not establish complete live or acoustic acceptance.
 GigPies `docs/AUDIO_HARDWARE.md` owns acceptance. Measurement/alignment remains the separate
 [planned capability](PHASE_ALIGNMENT.md).
+
+## Read-only descriptor and health (C-PA:1 / E08)
+
+The additive queries preserve all original v1 signatures and processing behavior.
+The header defines fixed-width caller-owned structs and constants. Pass version 1
+and the exact `sizeof` the corresponding struct. No output initialization is
+required; a successful query writes every field. Unknown version or size, null,
+misalignment, address-span overflow or status overlap returns −1 without writing
+output. The caller must supply live, correctly sized, unaliased writable memory;
+these checks cannot establish arbitrary pointer validity.
+
+Status queries require the handle's single owner to quiesce processing and all
+other queries/destruction. Output cannot overlap the inline handle or any of its
+eight heap delay allocations. Queries allocate nothing and perform no locks or I/O.
+They are snapshots, not concurrent telemetry or a fault reset. A valid status
+query returns 0 even when `fault_latched` and `recreate_required` are 1. Fault
+recovery remains stop/destroy/create; a recreated handle reports both flags as 0.
+`sample_rate` and `max_block` report the actual creation settings.
+
+The 80-byte descriptor has twenty 32-bit fields in header order. Values identify
+native f64 (1), the fixed full-range preset (1), two input and six logical output
+channels, active mask 3 (0/1), silent mask 60 (2..5), and host-owned physical I/O
+(`physical_io_owned=0`). Limiter kind 1 is the linked sample limiter, threshold
+−1000 milli-dBFS, release 100 ms, startup ramp 5 ms and fixed delay 0 frames.
+Rate/block bounds are 8000–192000 Hz and 1–8192 frames. The unavailable bit mask
+15 explicitly covers configurable controls, measurement, calibrated acoustic
+protection and true-peak limiting. It does not describe the broader standalone
+editor's controls or establish physical acceptance.
+
+The reusable [E08 corpus](../tests/fixtures/cpa/v1/README.md) contains expected
+values and an actual C caller checking layout, bounds, stereo identity, limiting,
+latched fault silence and recreation against the release library.

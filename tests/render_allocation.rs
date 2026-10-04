@@ -229,3 +229,30 @@ fn pink_generation_and_six_output_processing_never_allocate_or_free() {
     assert!(!engine.faulted());
     assert!(output.iter().any(|frame| frame[4] != 0.));
 }
+
+#[test]
+fn ffi_readonly_queries_never_allocate_or_free() {
+    use shr_pa::ffi::*;
+    let handle = shr_pa_v1_create(48000, 128);
+    assert!(!handle.is_null());
+    let mut descriptor = ShrPaDescriptorV1::default();
+    let mut status = ShrPaStatusV1::default();
+    COUNT.with(|c| c.set(Some(0)));
+    for _ in 0..100 {
+        unsafe {
+            assert_eq!(shr_pa_v1_descriptor(&mut descriptor, 1, 80), SHR_PA_OK);
+            assert_eq!(shr_pa_v1_status(handle, &mut status, 1, 24), SHR_PA_OK);
+            assert_eq!(
+                shr_pa_v1_status(handle, &mut status, 2, 24),
+                SHR_PA_INVALID_ARGUMENT
+            );
+            assert_eq!(
+                shr_pa_v1_status(handle, handle.cast(), 1, 24),
+                SHR_PA_INVALID_ARGUMENT
+            );
+        }
+    }
+    let count = COUNT.with(|c| c.replace(None).unwrap());
+    assert_eq!(count, 0);
+    unsafe { shr_pa_v1_destroy(handle) };
+}

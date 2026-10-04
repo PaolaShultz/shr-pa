@@ -422,6 +422,23 @@ impl Sample for f64 {
     }
 }
 impl Engine {
+    /// Heap storage owned by this engine, for read-only FFI query overlap checks.
+    /// Config and Prepared contain only inline storage; delays own all heap data.
+    pub(crate) fn owned_spans(&self) -> [(usize, usize); 8] {
+        std::array::from_fn(|index| {
+            let delay = if index < 2 {
+                &self.input_delay[index]
+            } else {
+                &self.output_delay[index - 2]
+            };
+            let start = delay.data.as_ptr() as usize;
+            (
+                start,
+                start + delay.data.capacity() * std::mem::size_of::<f64>(),
+            )
+        })
+    }
+
     pub fn new(c: Config) -> Result<Self, &'static str> {
         let p = Prepared::new(c, false)?;
         let rate = c.sample_rate;

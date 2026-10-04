@@ -161,3 +161,106 @@ fn native_f64_and_legacy_f32_share_all_layout_processing() {
         }
     }
 }
+
+#[test]
+fn ffi_descriptor_and_quiesced_status_are_truthful_and_readonly() {
+    let mut descriptor = ShrPaDescriptorV1::default();
+    let mut status = ShrPaStatusV1::default();
+    assert_eq!(std::mem::size_of_val(&descriptor), 80);
+    assert_eq!(std::mem::size_of_val(&status), 24);
+    let mut handle = Handle::new(64);
+    unsafe {
+        assert_eq!(shr_pa_v1_descriptor(&mut descriptor, 1, 80), SHR_PA_OK);
+        assert_eq!(shr_pa_v1_status(handle.0, &mut status, 1, 24), SHR_PA_OK);
+    }
+    assert_eq!(
+        (descriptor.input_channels, descriptor.logical_outputs),
+        (2, 6)
+    );
+    assert_eq!(
+        (descriptor.active_output_mask, descriptor.silent_output_mask),
+        (3, 60)
+    );
+    assert_eq!(
+        (
+            descriptor.limiter_kind,
+            descriptor.limiter_threshold_millidbfs
+        ),
+        (1, -1000)
+    );
+    assert_eq!(
+        (
+            descriptor.physical_io_owned,
+            descriptor.unavailable_capabilities
+        ),
+        (0, 15)
+    );
+    assert_eq!(
+        (status.sample_rate, status.max_block, status.fault_latched),
+        (48000, 64, 0)
+    );
+    let saved = status;
+    unsafe {
+        for (h, o, v, n) in [
+            (ptr::null(), &mut status as *mut _, 1, 24),
+            (handle.0.cast_const(), &mut status, 0, 24),
+            (handle.0.cast_const(), &mut status, 1, 23),
+            (handle.0.cast_const(), &mut status, 1, 25),
+            (handle.0.cast_const(), ptr::null_mut(), 1, 24),
+            (
+                handle.0.cast_const(),
+                (&mut status as *mut ShrPaStatusV1)
+                    .cast::<u8>()
+                    .add(1)
+                    .cast(),
+                1,
+                24,
+            ),
+            (handle.0.cast_const(), handle.0.cast(), 1, 24),
+            (
+                handle.0.cast_const(),
+                (usize::MAX - 3) as *mut ShrPaStatusV1,
+                1,
+                24,
+            ),
+        ] {
+            assert_eq!(shr_pa_v1_status(h, o, v, n), SHR_PA_INVALID_ARGUMENT);
+        }
+    }
+    assert_eq!(status, saved);
+    let saved = descriptor;
+    unsafe {
+        for (o, v, n) in [
+            (&mut descriptor as *mut _, 0, 80),
+            (&mut descriptor, 1, 79),
+            (&mut descriptor, 1, 81),
+            (ptr::null_mut(), 1, 80),
+            (
+                (&mut descriptor as *mut ShrPaDescriptorV1)
+                    .cast::<u8>()
+                    .add(1)
+                    .cast(),
+                1,
+                80,
+            ),
+            ((usize::MAX - 3) as *mut ShrPaDescriptorV1, 1, 80),
+        ] {
+            assert_eq!(shr_pa_v1_descriptor(o, v, n), SHR_PA_INVALID_ARGUMENT);
+        }
+    }
+    assert_eq!(descriptor, saved);
+    let mut output = [[0.; 6]; 64];
+    assert_eq!(
+        handle.process(&[[f64::NAN, 0.]; 64], &mut output),
+        SHR_PA_FAULT
+    );
+    unsafe {
+        assert_eq!(shr_pa_v1_status(handle.0, &mut status, 1, 24), SHR_PA_OK);
+    }
+    assert_eq!((status.fault_latched, status.recreate_required), (1, 1));
+    let fresh = Handle::new(64);
+    unsafe {
+        assert_eq!(shr_pa_v1_status(fresh.0, &mut status, 1, 24), SHR_PA_OK);
+    }
+    assert_eq!((status.fault_latched, status.recreate_required), (0, 0));
+}
