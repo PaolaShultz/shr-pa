@@ -1,0 +1,1091 @@
+{
+  "version": 2,
+  "sample_rate": 48000,
+  "max_block": 256,
+  "inputs": [
+    {
+      "gain_db": 0.0,
+      "delay_ms": 0.0,
+      "eq_enabled": true,
+      "eq": [
+        {
+          "kind": "bell",
+          "slope": 1.0,
+          "hz": 1000.0,
+          "q": 0.707,
+          "db": 0.0
+        },
+        {
+          "kind": "bell",
+          "slope": 1.0,
+          "hz": 1000.0,
+          "q": 0.707,
+          "db": 0.0
+        },
+        {
+          "kind": "bell",
+          "slope": 1.0,
+          "hz": 1000.0,
+          "q": 0.707,
+          "db": 0.0
+        },
+        {
+          "kind": "bell",
+          "slope": 1.0,
+          "hz": 1000.0,
+          "q": 0.707,
+          "db": 0.0
+        },
+        {
+          "kind": "bell",
+          "slope": 1.0,
+          "hz": 1000.0,
+          "q": 0.707,
+          "db": 0.0
+        },
+        {
+          "kind": "bell",
+          "slope": 1.0,
+          "hz": 1000.0,
+          "q": 0.707,
+          "db": 0.0
+        },
+        {
+          "kind": "bell",
+          "slope": 1.0,
+          "hz": 1000.0,
+          "q": 0.707,
+          "db": 0.0
+        },
+        {
+          "kind": "bell",
+          "slope": 1.0,
+          "hz": 1000.0,
+          "q": 0.707,
+          "db": 0.0
+        }
+      ],
+      "geq_enabled": false,
+      "geq_db": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "compressor": {
+        "enabled": false,
+        "threshold_db": -18.0,
+        "ratio": 4.0,
+        "knee_db": 6.0,
+        "makeup_db": 0.0,
+        "attack_ms": 10.0,
+        "release_ms": 100.0
+      }
+    },
+    {
+      "gain_db": 0.0,
+      "delay_ms": 0.0,
+      "eq_enabled": true,
+      "eq": [
+        {
+          "kind": "bell",
+          "slope": 1.0,
+          "hz": 1000.0,
+          "q": 0.707,
+          "db": 0.0
+        },
+        {
+          "kind": "bell",
+          "slope": 1.0,
+          "hz": 1000.0,
+          "q": 0.707,
+          "db": 0.0
+        },
+        {
+          "kind": "bell",
+          "slope": 1.0,
+          "hz": 1000.0,
+          "q": 0.707,
+          "db": 0.0
+        },
+        {
+          "kind": "bell",
+          "slope": 1.0,
+          "hz": 1000.0,
+          "q": 0.707,
+          "db": 0.0
+        },
+        {
+          "kind": "bell",
+          "slope": 1.0,
+          "hz": 1000.0,
+          "q": 0.707,
+          "db": 0.0
+        },
+        {
+          "kind": "bell",
+          "slope": 1.0,
+          "hz": 1000.0,
+          "q": 0.707,
+          "db": 0.0
+        },
+        {
+          "kind": "bell",
+          "slope": 1.0,
+          "hz": 1000.0,
+          "q": 0.707,
+          "db": 0.0
+        },
+        {
+          "kind": "bell",
+          "slope": 1.0,
+          "hz": 1000.0,
+          "q": 0.707,
+          "db": 0.0
+        }
+      ],
+      "geq_enabled": false,
+      "geq_db": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "compressor": {
+        "enabled": false,
+        "threshold_db": -18.0,
+        "ratio": 4.0,
+        "knee_db": 6.0,
+        "makeup_db": 0.0,
+        "attack_ms": 10.0,
+        "release_ms": 100.0
+      }
+    },
+    {
+      "gain_db": 0.0,
+      "delay_ms": 0.0,
+      "eq_enabled": true,
+      "eq": [
+        {
+          "kind": "bell",
+          "slope": 1.0,
+          "hz": 1000.0,
+          "q": 0.707,
+          "db": 0.0
+        },
+        {
+          "kind": "bell",
+          "slope": 1.0,
+          "hz": 1000.0,
+          "q": 0.707,
+          "db": 0.0
+        },
+        {
+          "kind": "bell",
+          "slope": 1.0,
+          "hz": 1000.0,
+          "q": 0.707,
+          "db": 0.0
+        },
+        {
+          "kind": "bell",
+          "slope": 1.0,
+          "hz": 1000.0,
+          "q": 0.707,
+          "db": 0.0
+        },
+        {
+          "kind": "bell",
+          "slope": 1.0,
+          "hz": 1000.0,
+          "q": 0.707,
+          "db": 0.0
+        },
+        {
+          "kind": "bell",
+          "slope": 1.0,
+          "hz": 1000.0,
+          "q": 0.707,
+          "db": 0.0
+        },
+        {
+          "kind": "bell",
+          "slope": 1.0,
+          "hz": 1000.0,
+          "q": 0.707,
+          "db": 0.0
+        },
+        {
+          "kind": "bell",
+          "slope": 1.0,
+          "hz": 1000.0,
+          "q": 0.707,
+          "db": 0.0
+        }
+      ],
+      "geq_enabled": false,
+      "geq_db": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "compressor": {
+        "enabled": false,
+        "threshold_db": -18.0,
+        "ratio": 4.0,
+        "knee_db": 6.0,
+        "makeup_db": 0.0,
+        "attack_ms": 10.0,
+        "release_ms": 100.0
+      }
+    },
+    {
+      "gain_db": 0.0,
+      "delay_ms": 0.0,
+      "eq_enabled": true,
+      "eq": [
+        {
+          "kind": "bell",
+          "slope": 1.0,
+          "hz": 1000.0,
+          "q": 0.707,
+          "db": 0.0
+        },
+        {
+          "kind": "bell",
+          "slope": 1.0,
+          "hz": 1000.0,
+          "q": 0.707,
+          "db": 0.0
+        },
+        {
+          "kind": "bell",
+          "slope": 1.0,
+          "hz": 1000.0,
+          "q": 0.707,
+          "db": 0.0
+        },
+        {
+          "kind": "bell",
+          "slope": 1.0,
+          "hz": 1000.0,
+          "q": 0.707,
+          "db": 0.0
+        },
+        {
+          "kind": "bell",
+          "slope": 1.0,
+          "hz": 1000.0,
+          "q": 0.707,
+          "db": 0.0
+        },
+        {
+          "kind": "bell",
+          "slope": 1.0,
+          "hz": 1000.0,
+          "q": 0.707,
+          "db": 0.0
+        },
+        {
+          "kind": "bell",
+          "slope": 1.0,
+          "hz": 1000.0,
+          "q": 0.707,
+          "db": 0.0
+        },
+        {
+          "kind": "bell",
+          "slope": 1.0,
+          "hz": 1000.0,
+          "q": 0.707,
+          "db": 0.0
+        }
+      ],
+      "geq_enabled": false,
+      "geq_db": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "compressor": {
+        "enabled": false,
+        "threshold_db": -18.0,
+        "ratio": 4.0,
+        "knee_db": 6.0,
+        "makeup_db": 0.0,
+        "attack_ms": 10.0,
+        "release_ms": 100.0
+      }
+    }
+  ],
+  "nodes": [
+    {
+      "routes": [
+        {
+          "source": {
+            "input": 0
+          },
+          "weight": 0.5
+        },
+        {
+          "source": {
+            "input": 2
+          },
+          "weight": 0.25
+        }
+      ]
+    },
+    {
+      "routes": [
+        {
+          "source": {
+            "input": 1
+          },
+          "weight": 0.75
+        },
+        {
+          "source": {
+            "input": 3
+          },
+          "weight": -0.5
+        }
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "source": {
+        "node": 0
+      },
+      "splits_hz": [
+        100.0,
+        600.0,
+        3000.0
+      ],
+      "band": 3,
+      "processing": {
+        "eq_enabled": true,
+        "gain_db": 0.0,
+        "inverted": false,
+        "delay_ms": 0.0,
+        "eq": [
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          }
+        ],
+        "limiter_db": -1.0,
+        "release_ms": 100.0
+      },
+      "muted": false
+    },
+    {
+      "source": {
+        "node": 1
+      },
+      "splits_hz": [
+        100.0,
+        600.0,
+        3000.0
+      ],
+      "band": 3,
+      "processing": {
+        "eq_enabled": true,
+        "gain_db": 0.0,
+        "inverted": false,
+        "delay_ms": 0.0,
+        "eq": [
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          }
+        ],
+        "limiter_db": -1.0,
+        "release_ms": 100.0
+      },
+      "muted": false
+    },
+    {
+      "source": {
+        "node": 0
+      },
+      "splits_hz": [
+        100.0,
+        600.0,
+        3000.0
+      ],
+      "band": 2,
+      "processing": {
+        "eq_enabled": true,
+        "gain_db": 0.0,
+        "inverted": false,
+        "delay_ms": 0.0,
+        "eq": [
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          }
+        ],
+        "limiter_db": -1.0,
+        "release_ms": 100.0
+      },
+      "muted": false
+    },
+    {
+      "source": {
+        "node": 1
+      },
+      "splits_hz": [
+        100.0,
+        600.0,
+        3000.0
+      ],
+      "band": 2,
+      "processing": {
+        "eq_enabled": true,
+        "gain_db": 0.0,
+        "inverted": false,
+        "delay_ms": 0.0,
+        "eq": [
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          }
+        ],
+        "limiter_db": -1.0,
+        "release_ms": 100.0
+      },
+      "muted": false
+    },
+    {
+      "source": {
+        "node": 0
+      },
+      "splits_hz": [
+        100.0,
+        600.0,
+        3000.0
+      ],
+      "band": 1,
+      "processing": {
+        "eq_enabled": true,
+        "gain_db": 0.0,
+        "inverted": false,
+        "delay_ms": 0.0,
+        "eq": [
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          }
+        ],
+        "limiter_db": -1.0,
+        "release_ms": 100.0
+      },
+      "muted": false
+    },
+    {
+      "source": {
+        "node": 1
+      },
+      "splits_hz": [
+        100.0,
+        600.0,
+        3000.0
+      ],
+      "band": 1,
+      "processing": {
+        "eq_enabled": true,
+        "gain_db": 0.0,
+        "inverted": false,
+        "delay_ms": 0.0,
+        "eq": [
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          }
+        ],
+        "limiter_db": -1.0,
+        "release_ms": 100.0
+      },
+      "muted": false
+    },
+    {
+      "source": {
+        "node": 0
+      },
+      "splits_hz": [
+        100.0,
+        600.0,
+        3000.0
+      ],
+      "band": 0,
+      "processing": {
+        "eq_enabled": true,
+        "gain_db": 0.0,
+        "inverted": false,
+        "delay_ms": 0.0,
+        "eq": [
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          }
+        ],
+        "limiter_db": -1.0,
+        "release_ms": 100.0
+      },
+      "muted": false
+    },
+    {
+      "source": {
+        "node": 1
+      },
+      "splits_hz": [
+        100.0,
+        600.0,
+        3000.0
+      ],
+      "band": 0,
+      "processing": {
+        "eq_enabled": true,
+        "gain_db": 0.0,
+        "inverted": false,
+        "delay_ms": 0.0,
+        "eq": [
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          },
+          {
+            "kind": "bell",
+            "slope": 1.0,
+            "hz": 1000.0,
+            "q": 0.707,
+            "db": 0.0
+          }
+        ],
+        "limiter_db": -1.0,
+        "release_ms": 100.0
+      },
+      "muted": false
+    }
+  ]
+}

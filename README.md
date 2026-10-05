@@ -10,7 +10,8 @@
 
 [Run commands](docs/RUNNING.md) · [Status](docs/STATUS.md) · [DSP behavior](docs/DSP.md) · [Roadmap](docs/ROADMAP.md) · [Hardware](docs/HARDWARE.md)
 
-SHR PA is a hardware-independent **2-input × 6-output** processor:
+SHR PA provides a hardware-independent **configurable PA graph** and the original
+standalone **2-input × 6-output** processor:
 LR24 full-range/two-way/phase-compensated three-way layouts, mono selection/bass
 summing, independent BW6–48/LR12–48 crossover edges, 31-band GEQ, bell/shelf PEQ,
 stereo-linked compression, delays,
@@ -71,7 +72,15 @@ parameter and `x`/`X` edits it. Layout/recall uses mute/reconfigure/resume.
 Presets use schema v3; `migrate OLD NEW` explicitly converts v1/v2 files and old
 library/working envelopes, retaining source files and EQ history. [Full instructions](docs/RUNNING.md).
 
-## Embed the existing PA engine
+## Embed the PA engine
+
+The additive [C-PA v2 contract](docs/EMBEDDING_V2.md) supports descriptor-driven
+program inputs, weighted mono sums, independently processed outputs and real
+stereo three/four-way LR24 crossovers. Prepared replacements use persistent
+mute/commit/rearm with off-thread retirement. Reference 2×6, 2×8 and 4×8 graphs
+are software-validated; module ports do not imply physical channel qualification.
+
+### Original fixed embedding
 
 The release build also produces `libshr_pa.so`. Its [versioned C interface](docs/EMBEDDING.md)
 accepts stereo f64 input and returns six logical f64 outputs using the existing
@@ -91,11 +100,12 @@ There is no claim of proprietary dbx algorithm equivalence.
 
 The requested [phase/delay alignment workflow](docs/PHASE_ALIGNMENT.md) will add
 reference/mic measurement and guided delay/polarity decisions. Develop the PA
-module here for standalone use and integration into GigPies. The fixed full-range
-embedding interface is implemented; measurement and automatic alignment remain pending.
+module here for standalone use and integration into GigPies. Fixed and configurable
+embedding interfaces are implemented; measurement and automatic alignment remain pending.
 
-General matrices, advanced routing, eight-point positional RTA and the later
-nine-channel arrangement remain [future work](docs/FUTURE.md).
+The weighted matrix foundation is implemented in v2. Arbitrary graph editing,
+eight-point positional RTA and the later nine-channel arrangement remain
+[future work](docs/FUTURE.md).
 
 [Validation and test policy](docs/VALIDATION.md) · [Contributing](CONTRIBUTING.md)
 

@@ -256,3 +256,109 @@ fn ffi_readonly_queries_never_allocate_or_free() {
     assert_eq!(count, 0);
     unsafe { shr_pa_v1_destroy(handle) };
 }
+
+#[test]
+fn configurable_graph_render_commit_retirement_and_queries_never_allocate_or_free() {
+    use shr_pa::{
+        ffi_v2::*,
+        graph::{GraphConfig, Input, Source},
+    };
+    use std::ptr;
+    for channels in [16, 32, 48] {
+        let mut config = GraphConfig::stereo(vec![100., 600., 3000.]);
+        config.inputs = vec![Input::default(); channels];
+        config.outputs[0].source = Some(Source::Input(channels - 1));
+        let json = serde_json::to_vec(&config).unwrap();
+        let first = unsafe { shr_pa_v2_prepare(json.as_ptr(), json.len() as u32, 2) };
+        let second = unsafe { shr_pa_v2_prepare(json.as_ptr(), json.len() as u32, 2) };
+        assert!(!first.is_null() && !second.is_null());
+        let mut active = ptr::null_mut();
+        let mut retired = ptr::null_mut();
+        let input = vec![0.1; channels * 256];
+        let mut output = vec![0.; 8 * 256];
+        let mut status = ShrPaStatusV2::default();
+        COUNT.with(|c| c.set(Some(0)));
+        unsafe {
+            assert_eq!(shr_pa_v2_apply(&mut active, first, &mut retired, 1, 0), 0);
+            assert_eq!(shr_pa_v2_rearm(active, 1, 0), 0);
+            assert_eq!(
+                shr_pa_v2_process(
+                    active,
+                    input.as_ptr(),
+                    output.as_mut_ptr(),
+                    channels as u32,
+                    8,
+                    256,
+                    1,
+                    0
+                ),
+                0
+            );
+            assert_eq!(shr_pa_v2_mute(active), 0);
+            assert_eq!(
+                shr_pa_v2_process(
+                    active,
+                    input.as_ptr(),
+                    output.as_mut_ptr(),
+                    channels as u32,
+                    8,
+                    256,
+                    1,
+                    256
+                ),
+                0
+            );
+            assert_eq!(shr_pa_v2_status(active, &mut status, 2, 80), 0);
+            assert_eq!(status.quiesced, 1);
+            assert_eq!(
+                shr_pa_v2_apply(&mut active, second, &mut retired, 1, 512),
+                0
+            );
+            assert_eq!(
+                shr_pa_v2_process(
+                    active,
+                    input.as_ptr(),
+                    output.as_mut_ptr(),
+                    channels as u32,
+                    8,
+                    256,
+                    1,
+                    1
+                ),
+                -4
+            );
+            assert_eq!(
+                shr_pa_v2_process(
+                    active,
+                    input.as_ptr(),
+                    output.as_mut_ptr(),
+                    channels as u32,
+                    8,
+                    256,
+                    1,
+                    512
+                ),
+                -2
+            );
+            assert_eq!(
+                shr_pa_v2_process(
+                    active,
+                    input.as_ptr(),
+                    output.as_mut_ptr(),
+                    1,
+                    8,
+                    256,
+                    1,
+                    512
+                ),
+                -1
+            );
+        }
+        let count = COUNT.with(|c| c.replace(None).unwrap());
+        assert_eq!(count, 0);
+        unsafe {
+            shr_pa_v2_destroy(retired);
+            shr_pa_v2_destroy(active);
+        }
+    }
+}

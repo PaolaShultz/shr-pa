@@ -4,12 +4,14 @@
 
 Highly experimental Rust PA management project for Raspberry Pi 5 and Linux Lite.
 UMC1820 is a future target, not a prerequisite for DSP development.
-Keep logical 2×6 processing, available physical channels and possible measurements distinct. Preserve implemented, planned and
-hardware-verified status. Current scope is the complete DriveRack PA2 function
-plan in fixed 2-input/6-output configurations, with one separate setup mic.
-LR24 is first/default. General matrices, advanced routing, eight-point positional
-RTA and the later nine-channel arrangement are future work; do not make them
-prerequisites or infer their roles. See docs/DRIVERACK_MAP.md and docs/FUTURE.md.
+Keep logical PA graph capacity, physical channels and measurement availability
+separate. The 2026-10-05 configurable C-PA v2 increment supersedes the previous
+fixed-2×6-only implementation scope. Preserve standalone fixed presets and exact
+v1 ABI semantics; develop dynamic program inputs, explicit weighted mono sums and
+independent outputs in this owner. Three/four-way LR24 and 4×8 are reference
+profiles, never product caps. See docs/EMBEDDING_V2.md for admission, phase,
+protection and persistent mute/prepare/commit/rearm ownership. The full DriveRack
+function plan and measurement/acoustic acceptance remain independently tracked.
 Do not add live audio or change host audio settings as planning/scaffold work.
 
 ## Modular development and next measurement work

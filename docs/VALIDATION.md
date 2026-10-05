@@ -149,3 +149,12 @@ python3 scripts/render-docs.py target/release/shr-pa
 
 Regenerates original SVG artwork and a terminal illustration from actual snapshot
 text. This is an opt-in documentation renderer; it is not a runtime test.
+
+## Configurable C-PA v2
+
+The normal `graph_v2` and extended `render_allocation` tests protect the dynamic
+graph, each independently referenced crossover branch and complex summed phase,
+weighted routing, admission, persistent mute, timeline faults and prepared-state
+retirement. See [actual C fixture commands](../tests/fixtures/cpa/v2/README.md).
+Three/four-way and matrix software evidence does not qualify physical channels
+or real-time hardware throughput. Historical/long/hardware classes remain opt-in.

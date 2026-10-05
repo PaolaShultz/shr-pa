@@ -4,7 +4,7 @@ use std::f64::consts::{FRAC_1_SQRT_2, PI};
 
 pub const OUTPUT_NAMES: [&str; 6] = ["H-L", "H-R", "M-L", "M-R", "L-L", "L-R"];
 #[derive(Clone, Copy, Default)]
-struct Biquad {
+pub(crate) struct Biquad {
     b: [f64; 3],
     a: [f64; 2],
     z: [f64; 2],
@@ -17,7 +17,7 @@ impl Biquad {
             z: [0.; 2],
         }
     }
-    fn edge(hz: f64, rate: u32, high: bool) -> Self {
+    pub(crate) fn edge(hz: f64, rate: u32, high: bool) -> Self {
         Self::second_order(hz, rate, high, FRAC_1_SQRT_2)
     }
     fn second_order(hz: f64, rate: u32, high: bool, q: f64) -> Self {
@@ -31,7 +31,7 @@ impl Biquad {
         };
         Self::normalized(b, [1. + alpha, -2. * c, 1. - alpha])
     }
-    fn identity() -> Self {
+    pub(crate) fn identity() -> Self {
         Self::normalized([1., 0., 0.], [1., 0., 0.])
     }
     /// Bilinear transform of an order-N Butterworth, or two identical
@@ -63,13 +63,13 @@ impl Biquad {
         }
         sections
     }
-    fn valid(&self) -> bool {
+    pub(crate) fn valid(&self) -> bool {
         self.a.iter().chain(self.b.iter()).all(|x| x.is_finite())
             && self.a[1].abs() < 1.
             && 1. + self.a[0] + self.a[1] > 0.
             && 1. - self.a[0] + self.a[1] > 0.
     }
-    fn allpass(hz: f64, rate: u32) -> Self {
+    pub(crate) fn allpass(hz: f64, rate: u32) -> Self {
         let w = 2. * PI * hz / rate as f64;
         let alpha = w.sin() / (2. * FRAC_1_SQRT_2);
         Self::normalized(
@@ -77,7 +77,7 @@ impl Biquad {
             [1. + alpha, -2. * w.cos(), 1. - alpha],
         )
     }
-    fn eq(e: EqBand, rate: u32) -> Self {
+    pub(crate) fn eq(e: EqBand, rate: u32) -> Self {
         let a = 10_f64.powf(e.db / 40.);
         let w = 2. * PI * e.hz / rate as f64;
         let alpha = w.sin() / (2. * e.q);
@@ -118,7 +118,7 @@ impl Biquad {
             [1. + alpha / a, -2. * w.cos(), 1. - alpha / a],
         )
     }
-    fn tick(&mut self, x: f64) -> f64 {
+    pub(crate) fn tick(&mut self, x: f64) -> f64 {
         let y = self.b[0] * x + self.z[0];
         self.z = [
             self.b[1] * x - self.a[0] * y + self.z[1],
@@ -200,7 +200,7 @@ impl Smooth {
         self.value
     }
 }
-struct Delay {
+pub(crate) struct Delay {
     data: Vec<f64>,
     pos: usize,
     tap: usize,
@@ -209,7 +209,14 @@ struct Delay {
     length: usize,
 }
 impl Delay {
-    fn new(ms: f64, max_ms: f64, rate: u32) -> Self {
+    pub(crate) fn owned_span(&self) -> (usize, usize) {
+        let start = self.data.as_ptr() as usize;
+        (
+            start,
+            start + self.data.capacity() * std::mem::size_of::<f64>(),
+        )
+    }
+    pub(crate) fn new(ms: f64, max_ms: f64, rate: u32) -> Self {
         let mut data = vec![0.; (max_ms * rate as f64 / 1000.).round() as usize + 1];
         for sample in &mut data {
             *std::hint::black_box(sample) = 0.;
@@ -232,7 +239,7 @@ impl Delay {
             self.length = n;
         }
     }
-    fn tick(&mut self, x: f64) -> f64 {
+    pub(crate) fn tick(&mut self, x: f64) -> f64 {
         self.data[self.pos] = x;
         let get = |tap| self.data[(self.pos + self.data.len() - tap) % self.data.len()];
         let mut y = get(self.tap);

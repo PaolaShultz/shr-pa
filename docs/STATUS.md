@@ -1,5 +1,21 @@
 # Current status
 
+## Configurable owner graph and C-PA v2 — 2026-10-05
+
+[Configurable embedding](EMBEDDING_V2.md) implements dynamic inputs, explicit
+weighted DAG sums, independent speaker outputs, existing input/speaker EQ, gain,
+mono dynamics, delay/polarity and final sample protection. Real 2×6 three-way,
+2×8 four-way and weighted 4×8 fixtures share the graph and original DSP primitives.
+The whole LR24 sum includes later-split phase compensation on earlier branches.
+Fresh/replaced state remains muted until explicit rearm; active/prepared/retired
+ownership and epoch/frame/generation fences are part of the additive v2 C ABI.
+Fixed standalone behavior and v1 ABI remain unchanged. This supersedes old PA-02
+and all-matrix deferrals below; measurement and physical acceptance remain separate.
+[Software verification](verification/0017-configurable-embedding.md) records 79 normal
+Rust tests, script checks, real C callers, format/Clippy/release and standalone
+offline/software-null validation. Integration and hardware claims remain separate.
+
+
 Application **0.2.0-alpha.1** uses processing schema **v3** and library/working
 envelopes **v2**. These version numbers are independent. See [release notes](../CHANGELOG.md)
 and the [release verification](verification/0007-0.2-alpha.md).

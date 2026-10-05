@@ -1,5 +1,16 @@
 # Beyond the initial 2×6 system
 
+## Matrix foundation delivered — 2026-10-05
+
+[C-PA v2](EMBEDDING_V2.md) now implements dynamic program inputs, explicit
+weighted mono routing and independent protected outputs, including compensated
+LR24 stereo three/four-way and 4×8 references. Existing standalone fixed presets
+and v1 bytes/semantics remain supported. This supersedes earlier fixed-2×6-only
+ordering and deferral of all matrix/configurable embedding below. Scope here is
+software implementation; physical I/O, acoustic/true-peak protection and
+measurement remain unqualified or unavailable as documented.
+
+
 These are future project directions. They are not prerequisites for the
 [DriveRack function plan](DRIVERACK_MAP.md).
 

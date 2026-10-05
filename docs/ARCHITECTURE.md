@@ -1,5 +1,16 @@
 # Architecture — fixed 2×6 processor
 
+## Configurable embedding alongside standalone — 2026-10-05
+
+[C-PA v2](EMBEDDING_V2.md) now implements dynamic program inputs, explicit
+weighted mono routing and independent protected outputs, including compensated
+LR24 stereo three/four-way and 4×8 references. Existing standalone fixed presets
+and v1 bytes/semantics remain supported. This supersedes earlier fixed-2×6-only
+ordering and deferral of all matrix/configurable embedding below. Scope here is
+software implementation; physical I/O, acoustic/true-peak protection and
+measurement remain unqualified or unavailable as documented.
+
+
 **Implemented 0.2 alpha architecture, with planned extensions identified below.**
 The actual processing/transport contracts are in [DSP](DSP.md) and [running](RUNNING.md).
 The main diagram shows the implemented path. Feedback, bass synthesis and

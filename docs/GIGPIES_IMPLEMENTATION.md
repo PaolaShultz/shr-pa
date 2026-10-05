@@ -1,5 +1,16 @@
 # SHR PA: GigPies embedding implementation
 
+## PA-02 successor implementation — 2026-10-05
+
+[C-PA v2](EMBEDDING_V2.md) now implements dynamic program inputs, explicit
+weighted mono routing and independent protected outputs, including compensated
+LR24 stereo three/four-way and 4×8 references. Existing standalone fixed presets
+and v1 bytes/semantics remain supported. This supersedes earlier fixed-2×6-only
+ordering and deferral of all matrix/configurable embedding below. Scope here is
+software implementation; physical I/O, acoustic/true-peak protection and
+measurement remain unqualified or unavailable as documented.
+
+
 Planning baseline **2026-10-04 / GP-2026-10-04.1**. PA-01 is now implemented; later tasks remain
 **planned**. Current software validation is recorded in Progress below. [Central inventory](https://github.com/PaolaShultz/gigpies/blob/main/docs/MODULE_IMPLEMENTATION_MAP.md) ·
 [Agreed contracts](https://github.com/PaolaShultz/gigpies/blob/main/docs/MODULE_CONTRACTS.md). Existing product roadmaps remain authoritative for

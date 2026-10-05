@@ -1,5 +1,16 @@
 # Implementation roadmap — DriveRack functions in 2×6
 
+## Configurable owner increment — 2026-10-05
+
+[C-PA v2](EMBEDDING_V2.md) now implements dynamic program inputs, explicit
+weighted mono routing and independent protected outputs, including compensated
+LR24 stereo three/four-way and 4×8 references. Existing standalone fixed presets
+and v1 bytes/semantics remain supported. This supersedes earlier fixed-2×6-only
+ordering and deferral of all matrix/configurable embedding below. Scope here is
+software implementation; physical I/O, acoustic/true-peak protection and
+measurement remain unqualified or unavailable as documented.
+
+
 **Current scope: two program inputs, six outputs, one separate setup microphone.**
 The [DriveRack function map](DRIVERACK_MAP.md) is the complete inventory for the
 PA2 reference: processing, setup, measurement, presets, operation, remote control,
