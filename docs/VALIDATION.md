@@ -158,3 +158,5 @@ weighted routing, admission, persistent mute, timeline faults and prepared-state
 retirement. See [actual C fixture commands](../tests/fixtures/cpa/v2/README.md).
 Three/four-way and matrix software evidence does not qualify physical channels
 or real-time hardware throughput. Historical/long/hardware classes remain opt-in.
+
+[CI failure/recovery notifications](CI.md#failure-and-recovery-notifications) group incidents in GitHub issue threads.
