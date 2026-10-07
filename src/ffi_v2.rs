@@ -10,11 +10,11 @@ const FAULT: i32 = -2;
 const BUSY: i32 = -3;
 const STALE: i32 = -4;
 pub struct ShrPaV2 {
-    graph: Graph,
-    phase: u32,
-    epoch: u64,
-    next_frame: u64,
-    generation: u64,
+    pub(crate) graph: Graph,
+    pub(crate) phase: u32,
+    pub(crate) epoch: u64,
+    pub(crate) next_frame: u64,
+    pub(crate) generation: u64,
     applied_frame: u64,
 }
 #[repr(C)]
@@ -59,7 +59,7 @@ pub struct ShrPaCapabilitiesV2 {
 }
 const _: () = assert!(mem::size_of::<ShrPaStatusV2>() == 80);
 const _: () = assert!(mem::size_of::<ShrPaCapabilitiesV2>() == 64);
-fn span<T>(p: *const T, count: usize) -> Option<(usize, usize)> {
+pub(crate) fn span<T>(p: *const T, count: usize) -> Option<(usize, usize)> {
     let a = p as usize;
     if p.is_null() || !a.is_multiple_of(mem::align_of::<T>()) || count == 0 {
         return None;
@@ -70,11 +70,11 @@ fn span<T>(p: *const T, count: usize) -> Option<(usize, usize)> {
     }
     Some((a, a.checked_add(bytes)?))
 }
-fn overlaps(a: (usize, usize), b: (usize, usize)) -> bool {
+pub(crate) fn overlaps(a: (usize, usize), b: (usize, usize)) -> bool {
     a.0 < b.1 && b.0 < a.1
 }
 impl ShrPaV2 {
-    fn overlaps(&self, range: (usize, usize)) -> bool {
+    pub(crate) fn overlaps(&self, range: (usize, usize)) -> bool {
         overlaps(span(self, 1).unwrap(), range) || self.graph.overlaps(range)
     }
 }

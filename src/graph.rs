@@ -1,7 +1,10 @@
 //! Configurable owner-native PA graph. Preparation allocates; rendering does not.
 use crate::config::{Band, Compressor, Config, EqBand, GEQ_HZ};
 use crate::dsp::{Biquad, Delay, compression_db};
+use crate::live_eq::{EqPatch, EqProgress, EqSettings, PreparedEq};
 use serde::{Deserialize, Serialize};
+use std::sync::atomic::{AtomicU64, Ordering};
+static NEXT_INSTANCE: AtomicU64 = AtomicU64::new(1);
 
 /// Implementation resource budgets, not product channel limits.
 pub const MAX_PORTS: usize = 4096;
@@ -224,6 +227,10 @@ pub struct Graph {
     pub(crate) fault: bool,
     pub(crate) muted: bool,
     pub(crate) ramp: f64,
+    pub(crate) instance: u64,
+    pub(crate) eq_generation: u64,
+    pub(crate) live_eq: Option<Box<PreparedEq>>,
+    pub(crate) eq_aborted: Option<[EqSettings; 2]>,
 }
 impl Graph {
     pub fn config(&self) -> &GraphConfig {
@@ -317,6 +324,12 @@ impl Graph {
             fault: false,
             muted: true,
             ramp: 0.,
+            instance: NEXT_INSTANCE
+                .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |n| n.checked_add(1))
+                .map_err(|_| "owner instance counter exhausted")?,
+            eq_generation: 0,
+            live_eq: None,
+            eq_aborted: None,
         })
     }
     pub(crate) fn overlaps(&self, span: (usize, usize)) -> bool {
@@ -325,7 +338,8 @@ impl Graph {
             a < span.1 && span.0 < a + v.capacity() * std::mem::size_of::<T>()
         }
         let overlap = |a: (usize, usize)| a.0 < span.1 && span.0 < a.1;
-        vector(&self.config.inputs, span)
+        self.live_eq.as_ref().is_some_and(|p| p.overlaps(span))
+            || vector(&self.config.inputs, span)
             || vector(&self.config.nodes, span)
             || vector(&self.config.outputs, span)
             || self.config.nodes.iter().any(|n| vector(&n.routes, span))
@@ -344,6 +358,123 @@ impl Graph {
             || self.outputs.iter().any(|o| {
                 vector(&o.filters, span) || vector(&o.eq, span) || overlap(o.delay.owned_span())
             })
+    }
+    /// Separate optional admission; legacy graph admission remains unchanged.
+    pub fn live_eq_eligible(&self) -> bool {
+        let work = self.config.inputs.len() * 40
+            + self
+                .config
+                .nodes
+                .iter()
+                .map(|n| n.routes.len())
+                .sum::<usize>()
+            + self
+                .config
+                .outputs
+                .iter()
+                .map(|o| o.splits_hz.len() * 2 + 12)
+                .sum::<usize>();
+        work.checked_add(80).is_some_and(|n| n <= MAX_OPERATIONS)
+    }
+    pub fn prepare_eq(&self, patch: EqPatch) -> Result<Box<PreparedEq>, &'static str> {
+        if self.fault {
+            return Err("fault latched");
+        }
+        if self.live_eq.is_some() {
+            return Err("EQ retirement occupied");
+        }
+        if !self.live_eq_eligible() {
+            return Err("live EQ resource budget");
+        }
+        patch.validate(self.config.sample_rate, self.inputs.len())?;
+        let next = self
+            .eq_generation
+            .checked_add(1)
+            .ok_or("EQ generation exhausted")?;
+        let banks = [
+            patch.inputs[0].bank(self.config.sample_rate)?,
+            patch.inputs[1].bank(self.config.sample_rate)?,
+        ];
+        let changed = patch
+            .inputs
+            .each_ref()
+            .map(|e| !e.matches(&self.config.inputs[e.input_index]));
+        let noop = patch
+            .inputs
+            .iter()
+            .all(|e| e.matches(&self.config.inputs[e.input_index]));
+        Ok(Box::new(PreparedEq {
+            previous: [
+                EqSettings::from_input(
+                    patch.inputs[0].input_index,
+                    &self.config.inputs[patch.inputs[0].input_index],
+                ),
+                EqSettings::from_input(
+                    patch.inputs[1].input_index,
+                    &self.config.inputs[patch.inputs[1].input_index],
+                ),
+            ],
+            graph_generation: 0,
+            epoch: 0,
+            frame: 0,
+            patch,
+            banks,
+            instance: self.instance,
+            base_generation: self.eq_generation,
+            generation: next,
+            elapsed: 0,
+            duration: (self.config.sample_rate as u64).div_ceil(200).max(2),
+            finished: noop,
+            noop,
+            changed,
+        }))
+    }
+    /// On failure ownership stays with caller. No allocation or destruction.
+    pub fn apply_eq(&mut self, prepared: &mut Option<Box<PreparedEq>>) -> Result<(), &'static str> {
+        if self.fault {
+            return Err("fault latched");
+        }
+        if self.live_eq.is_some() {
+            return Err("EQ retirement occupied");
+        }
+        let p = prepared.as_ref().ok_or("missing prepared EQ")?;
+        if p.instance != self.instance || p.base_generation != self.eq_generation {
+            return Err("stale EQ owner/generation");
+        }
+        for e in &p.patch.inputs {
+            e.install(&mut self.config.inputs[e.input_index]);
+        }
+        self.eq_generation = p.generation;
+        self.live_eq = prepared.take();
+        Ok(())
+    }
+    /// Move reserved storage to the controller for offRT destruction.
+    pub fn retire_eq(&mut self) -> Option<Box<PreparedEq>> {
+        if self
+            .live_eq
+            .as_ref()
+            .is_some_and(|p| p.finished || self.fault)
+        {
+            let p = self.live_eq.take().unwrap();
+            if self.fault && !p.finished {
+                self.eq_aborted = Some(p.previous.clone());
+            }
+            Some(p)
+        } else {
+            None
+        }
+    }
+    pub fn eq_progress(&self) -> EqProgress {
+        EqProgress {
+            generation: self.eq_generation,
+            remaining: self
+                .live_eq
+                .as_ref()
+                .filter(|p| !p.finished)
+                .map_or(0, |p| p.duration - p.elapsed),
+            retirement_occupied: self.live_eq.is_some(),
+            eligible: self.live_eq_eligible(),
+        }
     }
     pub fn quiesced(&self) -> bool {
         self.muted && self.ramp == 0.
@@ -373,10 +504,27 @@ impl Graph {
             return Err("fault latched");
         }
         for (src, dst) in input.chunks_exact(ni).zip(output.chunks_exact_mut(no)) {
+            let weight = self
+                .live_eq
+                .as_ref()
+                .filter(|p| !p.finished && !p.noop)
+                .map(|p| p.elapsed as f64 / (p.duration - 1) as f64);
             for (index, (state, &x)) in self.inputs.iter_mut().zip(src).enumerate() {
                 let mut y = x * state.gain;
                 for eq in &mut state.eq {
                     y = eq.tick(y);
+                }
+                if let Some(w) = weight {
+                    let p = self.live_eq.as_mut().unwrap();
+                    if let Some(slot) = p.patch.inputs.iter().position(|e| e.input_index == index)
+                        && p.changed[slot]
+                    {
+                        let mut target = x * state.gain;
+                        for eq in &mut p.banks[slot] {
+                            target = eq.tick(target);
+                        }
+                        y = y * (1. - w) + target * w;
+                    }
                 }
                 if state.compressor.enabled {
                     let c = state.compressor;
@@ -398,6 +546,21 @@ impl Graph {
                     self.fault = true;
                 }
                 self.values[index] = state.delay.tick(y);
+            }
+            if weight.is_some() {
+                let p = self.live_eq.as_mut().unwrap();
+                p.elapsed += 1;
+                if p.elapsed == p.duration {
+                    for slot in 0..2 {
+                        if p.changed[slot] {
+                            std::mem::swap(
+                                &mut self.inputs[p.patch.inputs[slot].input_index].eq,
+                                &mut p.banks[slot],
+                            );
+                        }
+                    }
+                    p.finished = true;
+                }
             }
             for (index, node) in self.config.nodes.iter().enumerate() {
                 let mut value = 0.;
@@ -457,5 +620,40 @@ impl Graph {
             return Err("numeric fault");
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod live_eq_safety_tests {
+    use super::*;
+    fn patch(g: &Graph) -> EqPatch {
+        EqPatch {
+            version: 1,
+            inputs: [
+                EqSettings::from_input(0, &g.config.inputs[0]),
+                EqSettings::from_input(1, &g.config.inputs[1]),
+            ],
+        }
+    }
+    #[test]
+    fn optional_budget_does_not_change_legacy_admission_and_counter_exhaustion_refuses() {
+        let mut c = GraphConfig::stereo(vec![]);
+        c.nodes.push(Node {
+            routes: vec![
+                Route {
+                    source: Source::Input(0),
+                    weight: 1.
+                };
+                MAX_OPERATIONS - 104
+            ],
+        });
+        assert!(c.validate().is_ok());
+        let g = Graph::prepare(c).unwrap();
+        assert!(!g.live_eq_eligible());
+        assert!(g.prepare_eq(patch(&g)).is_err());
+        let mut g = Graph::prepare(GraphConfig::stereo(vec![])).unwrap();
+        g.eq_generation = u64::MAX;
+        assert!(g.prepare_eq(patch(&g)).is_err());
+        assert_eq!(g.eq_generation, u64::MAX);
     }
 }

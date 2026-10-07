@@ -23,3 +23,6 @@ signal-hook = "=0.3.18"
 lto = "thin"
 codegen-units = 1
 strip = true
+
+[features]
+owner-allocation-guard = []

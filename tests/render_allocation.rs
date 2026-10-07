@@ -362,3 +362,84 @@ fn configurable_graph_render_commit_retirement_and_queries_never_allocate_or_fre
         }
     }
 }
+
+#[test]
+fn eq_extension_apply_endpoint_busy_stale_fault_and_retirement_never_allocate_or_free() {
+    use shr_pa::{
+        ffi_eq::*,
+        ffi_v2::*,
+        graph::GraphConfig,
+        live_eq::{EqPatch, EqSettings},
+    };
+    unsafe {
+        let c = GraphConfig::stereo(vec![]);
+        let full = serde_json::to_vec(&c).unwrap();
+        let prepared = shr_pa_v2_prepare(full.as_ptr(), full.len() as u32, 2);
+        let mut h = std::ptr::null_mut();
+        let mut old = std::ptr::null_mut();
+        assert_eq!(shr_pa_v2_apply(&mut h, prepared, &mut old, 1, 0), 0);
+        let mut patch = EqPatch {
+            version: 1,
+            inputs: [
+                EqSettings::from_input(0, &c.inputs[0]),
+                EqSettings::from_input(1, &c.inputs[1]),
+            ],
+        };
+        patch.inputs[0].eq[0].db = 6.;
+        let json = serde_json::to_vec(&patch).unwrap();
+        let mut p = shr_pa_eq_v1_prepare(h, json.as_ptr(), json.len() as u32, 1, 1, 0, 1, 0);
+        let owned_span = p;
+        let mut conflict = shr_pa_eq_v1_prepare(h, json.as_ptr(), json.len() as u32, 1, 1, 0, 1, 0);
+        let input = [0.1; 96];
+        let mut out = [0.; 96];
+        let mut retired = std::ptr::null_mut();
+        COUNT.with(|c| c.set(Some(0)));
+        assert_eq!(shr_pa_eq_v1_apply(h, &mut p, 1, 1), -4);
+        assert_eq!(shr_pa_eq_v1_apply(h, &mut p, 1, 0), 0);
+        assert_eq!(shr_pa_eq_v1_apply(h, &mut conflict, 1, 0), -3);
+        for phase in 0..2 {
+            assert_eq!(shr_pa_eq_v1_status(h, owned_span.cast(), 1, 64), -1);
+            assert_eq!(shr_pa_eq_v1_readback(h, 0, 1, owned_span.cast(), 64), -1);
+            assert_eq!(shr_pa_eq_v1_retire(h, owned_span.cast()), -1);
+            assert_eq!(shr_pa_eq_v1_apply(h, owned_span.cast(), 1, 0), -1);
+            assert_eq!(
+                shr_pa_v2_process(h, input.as_ptr(), owned_span.cast(), 2, 2, 1, 1, 0),
+                -1
+            );
+            assert_eq!(
+                shr_pa_v2_process(h, owned_span.cast(), out.as_mut_ptr(), 2, 2, 1, 1, 0),
+                -1
+            );
+            if phase == 0 {
+                for block in 0..5 {
+                    assert_eq!(
+                        shr_pa_v2_process(
+                            h,
+                            input.as_ptr(),
+                            out.as_mut_ptr(),
+                            2,
+                            2,
+                            48,
+                            1,
+                            block * 48
+                        ),
+                        0
+                    );
+                }
+            }
+        }
+        assert_eq!(shr_pa_eq_v1_retire(h, &mut retired), 0);
+        assert_eq!(shr_pa_eq_v1_apply(h, &mut conflict, 1, 240), -4);
+        let invalid = [f64::NAN; 96];
+        assert_eq!(
+            shr_pa_v2_process(h, invalid.as_ptr(), out.as_mut_ptr(), 2, 2, 48, 1, 240),
+            -2
+        );
+        assert_eq!(shr_pa_eq_v1_apply(h, &mut conflict, 1, 240), -2);
+        let n = COUNT.with(|c| c.replace(None).unwrap());
+        assert_eq!(n, 0);
+        shr_pa_eq_v1_destroy(retired);
+        shr_pa_eq_v1_destroy(conflict);
+        shr_pa_v2_destroy(h);
+    }
+}

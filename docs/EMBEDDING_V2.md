@@ -102,8 +102,8 @@ All configuration controls currently use the mute/prepare/commit/rearm path,
 including route, crossover, EQ, gain, polarity, delays and limiter settings. No
 live coefficient/delay switch is hidden inside processing. Replacement safely
 resets delay/filter histories under mute. Configured output mutes remain in force
-after global rearm. A future live-control transaction may preserve histories,
-but is not advertised by this ABI.
+after global rearm. The independently optional [live EQ extension](LIVE_EQ_ABI.md) preserves histories
+for strictly narrow stereo EQ transactions; it does not alter the v2 contract.
 
 ## Available ranges and resource admission
 

@@ -63,6 +63,9 @@ impl Biquad {
         }
         sections
     }
+    pub(crate) fn coefficients(&self) -> [f64; 5] {
+        [self.b[0], self.b[1], self.b[2], self.a[0], self.a[1]]
+    }
     pub(crate) fn valid(&self) -> bool {
         self.a.iter().chain(self.b.iter()).all(|x| x.is_finite())
             && self.a[1].abs() < 1.
