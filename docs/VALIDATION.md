@@ -160,3 +160,14 @@ Three/four-way and matrix software evidence does not qualify physical channels
 or real-time hardware throughput. Historical/long/hardware classes remain opt-in.
 
 [CI failure/recovery notifications](CI.md#failure-and-recovery-notifications) group incidents in GitHub issue threads.
+
+## Offline measurement v1
+
+`cargo test --locked --test measurement` is a normal production class. It covers
+strict bounded JSON, paired timing/quality refusal, actual Graph transfer and
+independently predicted summed correction, delay/polarity/no-change/range behavior,
+analytic LR24 phase, noise/reflection/periodicity refusal and position consensus.
+`shr-pa-measure` performs no device access or application; see the
+[measurement contract](MEASUREMENT_V1.md). All existing engine, ABI, protection,
+terminal and software-null gates still apply. Physical capture and acoustic tests
+remain separately authorized and are not implicit in this command.

@@ -1,5 +1,21 @@
 # Current status
 
+## Offline measurement owner — 2026-10-08
+
+The [measurement v1 module and standalone JSON CLI](MEASUREMENT_V1.md) now provide
+bounded 48 kHz reference/mic H1 magnitude/phase/coherence, integer arrival evidence
+and conservative multi-position delay/polarity review proposals. Actual configurable
+Graph paths are covered by synthetic regressions; no-change, refusal and exact
+base-graph preservation are explicit. Neither analysis nor proposal generation
+applies settings or rearms outputs. Live capture, GigPies/Desk integration and
+physical multi-position acoustic acceptance remain separate work.
+
+Software gates passed 103 normal Rust tests (12 measurement regressions),
+warning-denied Clippy, formatting, release build, five Python tests, documentation
+checks, terminal recovery and software-null controls. The release measurement CLI
+reproduced the checked-in invented result/proposal corpus exactly. Hardware,
+acoustic, historical audition and long load tests were not run.
+
 ## Optional live EQ extension — 2026-10-08 software acceptance
 
 The [EQ v1 extension](LIVE_EQ_ABI.md) is implemented and independently reviewed.
@@ -42,8 +58,9 @@ and the [release verification](verification/0007-0.2-alpha.md).
 
 The [phase-alignment task](PHASE_ALIGNMENT.md), recorded on 2026-10-02, extends
 P4/P5 with synchronized reference/setup-mic measurement and a bounded delay/polarity
-proposal stage. Pink generation and pair controls already exist; measurement and
-automatic alignment remain pending. RTA magnitude alone cannot supply this analysis.
+proposal stage. Pink generation and output controls already exist; the offline
+measurement owner above is implemented. Synchronized capture and acoustic acceptance
+remain pending. RTA magnitude alone cannot supply this analysis.
 Develop and validate the capability in SHR PA, with the finished PA module intended
 for later GigPies integration. Standalone operation remains supported. No new DSP,
 integration or physical validation was performed when recording this task.

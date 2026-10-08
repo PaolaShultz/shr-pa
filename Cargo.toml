@@ -1,5 +1,6 @@
 [package]
 name = "shr-pa"
+default-run = "shr-pa"
 version = "0.2.0-alpha.1"
 edition = "2024"
 rust-version = "1.97.1"

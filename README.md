@@ -105,10 +105,11 @@ The local library, working recovery, manual EQ restore and crossover controls ar
 The full PA2 function plan remains incomplete.
 There is no claim of proprietary dbx algorithm equivalence.
 
-The requested [phase/delay alignment workflow](docs/PHASE_ALIGNMENT.md) will add
-reference/mic measurement and guided delay/polarity decisions. Develop the PA
-module here for standalone use and integration into GigPies. Fixed and configurable
-embedding interfaces are implemented; measurement and automatic alignment remain pending.
+The [offline measurement owner](docs/MEASUREMENT_V1.md) provides standalone
+reference/mic transfer, arrival/coherence and conservative delay/polarity review
+proposals. It never applies settings. The broader [phase/delay alignment workflow](docs/PHASE_ALIGNMENT.md)
+still needs synchronized capture, integration and physical acoustic acceptance.
+Fixed and configurable embedding interfaces remain unchanged.
 
 The weighted matrix foundation is implemented in v2. Arbitrary graph editing,
 eight-point positional RTA and the later nine-channel arrangement remain

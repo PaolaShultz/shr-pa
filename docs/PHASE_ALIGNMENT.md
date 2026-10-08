@@ -1,6 +1,15 @@
 # PA measurement and alignment
 
-**Pending SHR PA development task, intended for later GigPies integration.**
+**Offline owner increment implemented; capture and acoustic acceptance pending.**
+
+The 2026-10-08 [measurement v1 contract](MEASUREMENT_V1.md) adds a standalone
+bounded sample-pair analyzer and conservative multi-position review proposals.
+It measures actual configurable Graph paths in synthetic tests, preserves exact
+base configuration/protection, and never applies settings. Current v2 outputs have
+independent 0..10 ms delay/polarity; the fixed linked-pair table below is historical.
+Synchronized setup-mic capture, integration, physical combined-response checks and
+acoustic acceptance remain pending. The original task below continues to describe
+those broader acceptance requirements.
 Recorded on 2026-10-02 from the user's proposal to use a measurement mic and pink
 noise to identify phase problems and correct arrival-time differences with small
 delays. This document adds no implementation or hardware acceptance claim.
@@ -16,10 +25,12 @@ interface and packaging will be defined when that capability is built.
 
 - [ ] P4: add isolated setup-mic capture and a synchronized excitation reference,
   with timing, clipping and dropped-data reporting.
-- [ ] P4: implement transfer-function magnitude/phase, arrival estimates and
-  confidence/coherence analysis outside the render callback. RTA alone is insufficient.
-- [ ] P5: build a reviewable delay/polarity alignment stage using the existing
-  pair controls, including an unchanged result and clear unsupported cases.
+- [x] P4 offline increment: transfer-function magnitude/phase, integer arrival and
+  coherence outside the render callback, with conservative explicit limits.
+  Synchronized physical capture and acoustic confidence remain pending.
+- [x] P5 offline increment: reviewable independent-output delay/polarity proposals,
+  including unchanged/refused results and multiple-position conflict refusal.
+  Application and physical verification remain separate.
 - [ ] P5: verify combined response across relevant frequencies and several sequential
   microphone positions; preserve settings on cancellation or inconclusive evidence.
 - [ ] Complete the production-DSP regressions and separately authorized physical
