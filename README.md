@@ -80,6 +80,13 @@ stereo three/four-way LR24 crossovers. Prepared replacements use persistent
 mute/commit/rearm with off-thread retirement. Reference 2×6, 2×8 and 4×8 graphs
 are software-validated; module ports do not imply physical channel qualification.
 
+The optional [live EQ extension](docs/LIVE_EQ_ABI.md) changes two selected program
+input EQ banks together while processing. It crossfades their EQ outputs before
+the continuing dynamics, routing and protection stages, with explicit preparation,
+generation checks and retirement. It neither replaces the graph nor rearms outputs.
+The integrating host owns main-bus selection and operator authority. This path has
+software acceptance; listening and physical timing remain unverified.
+
 ### Original fixed embedding
 
 The release build also produces `libshr_pa.so`. Its [versioned C interface](docs/EMBEDDING.md)

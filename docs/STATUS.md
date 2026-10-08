@@ -1,5 +1,23 @@
 # Current status
 
+## Optional live EQ extension — 2026-10-08 software acceptance
+
+The [EQ v1 extension](LIVE_EQ_ABI.md) is implemented and independently reviewed.
+It prepares exactly two distinct program-input EQ banks off the processing path,
+then commits both at one boundary with a shared transition: 240 frames at 48 kHz.
+Each bank has eight parametric bands and 31 graphic bands with independent enables.
+The transition blends EQ outputs before continuing compression, delay, routing,
+crossovers, speaker processing and protection. Graph configuration and output rearm
+remain separate operations; the original embedding ABIs retain their layouts.
+
+Validation passed 91 normal Rust tests, warning-denied Clippy, formatting, normal
+and allocation-guard release builds, real C callers and software-null/terminal
+checks. Coefficient fixtures cover 8/48/192 kHz; synthetic host checks exercise
+actual owner admission, transition, retirement, bypass, faults and recovery.
+The allocation evidence covers the narrow owner commit/render path, not the
+surrounding host control loop. Physical outputs, listening, clock lock, acoustic
+protection and whole-host deadlines remain separate acceptance work.
+
 ## Configurable owner graph and C-PA v2 — 2026-10-05
 
 [Configurable embedding](EMBEDDING_V2.md) implements dynamic inputs, explicit

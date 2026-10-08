@@ -21,6 +21,8 @@ software-null examples; hardware qualification is a separate activity.
 - [Contributing](../CONTRIBUTING.md) and [working agreements](../AGENTS.md).
 - [Publication boundaries](PUBLICATION.md): private data, reviewed scripts and Git hooks.
 - [Embedding](EMBEDDING.md): versioned C ABI, native f64 buffers, protection and host ownership.
+- [Configurable embedding](EMBEDDING_V2.md): dynamic inputs, routing and muted graph replacement.
+- [Live EQ extension](LIVE_EQ_ABI.md): optional atomic stereo EQ preparation, transition and retirement.
 - [USB integration checkpoint](verification/0014-integration-checkpoint.md): GigPies-owned continuity, fault recovery and admission-budget findings.
 - [Validation](VALIDATION.md): normal production checks and opt-in research/hardware work.
 - [Release notes](../CHANGELOG.md) and [0.2 alpha verification](verification/0007-0.2-alpha.md).
