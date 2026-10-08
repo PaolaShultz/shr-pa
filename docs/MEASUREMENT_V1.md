@@ -37,7 +37,7 @@ a caller must bind it to its own admitted capture and configuration revision.
 ## Strict request envelope
 
 All fields shown are required, with no unknown or duplicate keys. Exact operation
-names are `analyze` and `propose`; contract is `C-PA-MEASUREMENT`, version is integer
+names are `analyze`, `propose` and `candidate`; contract is `C-PA-MEASUREMENT`, version is integer
 1. The complete document is at most 8 MiB; the parser limits object members to 64,
 array entries to 65536 and strings to 256 bytes before typed admission. serde_json's
 normal nesting bound remains enabled. Capture IDs below are ASCII graphic strings
@@ -92,6 +92,18 @@ position IDs and all capture IDs are unique. Capture frame ranges may differ
 because measurements can be sequential. They never acquire independent timing
 origins. Every pair must recommend exactly the same integer delay difference and
 polarity correction; otherwise the entire proposal is refused.
+
+## Owner-validated candidate operation
+
+A `candidate` request contains the same envelope, `configuration_revision`, exact
+current `configuration`, and a `proposal` object previously returned by this owner.
+It calls the existing candidate validator and returns
+`C-PA-ALIGNMENT-CANDIDATE` version1 with `basis_capture`,
+`basis_configuration_revision` and `configuration_json` (the serialized validated
+candidate graph). Refused, forged-change, stale-base and mismatched-revision
+proposals return the normal exit2 refusal. This operation neither applies settings
+nor rearms outputs. The host still verifies current epoch/map/reference identity
+and controls the muted review transaction; JSON alone is not authorization.
 
 ## Algorithm and result
 

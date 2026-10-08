@@ -444,3 +444,34 @@ fn golden_owner_results_and_proposal_are_strictly_interoperable() {
         serde_json::from_str(include_str!("fixtures/measurement/v1/refusal.json")).unwrap();
     assert_eq!(refusal["contract"], "C-PA-MEASUREMENT-REFUSAL");
 }
+#[test]
+fn owner_candidate_operation_rejects_forged_refused_or_mismatched_basis() {
+    let proposal: Proposal =
+        serde_json::from_str(include_str!("fixtures/measurement/v1/proposal.json")).unwrap();
+    let request = serde_json::json!({"contract":"C-PA-MEASUREMENT","version":1,"operation":"candidate","configuration_revision":"1","configuration":proposal.basis_configuration,"proposal":proposal});
+    let run = |value: &serde_json::Value| {
+        execute(decode_request(&serde_json::to_vec(value).unwrap()).unwrap())
+    };
+    let candidate = run(&request).unwrap();
+    assert_eq!(candidate["contract"], "C-PA-ALIGNMENT-CANDIDATE");
+    let graph: GraphConfig =
+        serde_json::from_str(candidate["configuration_json"].as_str().unwrap()).unwrap();
+    assert_eq!(
+        graph,
+        proposal
+            .candidate_configuration(&proposal.basis_configuration, "1")
+            .unwrap()
+    );
+    let mut bad = request.clone();
+    bad["proposal"]["changes"][0]["after_delay_samples"] = 481.into();
+    assert!(run(&bad).is_err());
+    let mut bad = request.clone();
+    bad["proposal"]["status"] = "refused".into();
+    assert!(run(&bad).is_err());
+    let mut bad = request.clone();
+    bad["configuration_revision"] = "2".into();
+    assert!(run(&bad).is_err());
+    let mut bad = request;
+    bad["configuration"]["outputs"][0]["processing"]["limiter_db"] = (-20).into();
+    assert!(run(&bad).is_err());
+}

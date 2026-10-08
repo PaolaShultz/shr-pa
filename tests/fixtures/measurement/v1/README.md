@@ -13,6 +13,8 @@ metadata retained in the result files. Options are the documented defaults.
   input0; target already has delay0.5ms and inverted=true. The proposal delays the
   anchor24 samples and toggles target inversion off. The complete base graph is
   retained, including limiter/protection and mute state.
+- `candidate.json`: owner-validated candidate operation on the proposal/current
+  base graph; retains basis identity and returns serialized graph for muted review.
 - `refusal.json`: duplicate-key request rejected by the real decoder, exit2.
 
 Floating-point fields are interoperability examples, not bit-identical numerical

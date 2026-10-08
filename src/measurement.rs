@@ -110,6 +110,13 @@ pub enum Request {
         reference: Vec<f64>,
         mic: Vec<f64>,
     },
+    Candidate {
+        contract: String,
+        version: u32,
+        configuration_revision: String,
+        configuration: GraphConfig,
+        proposal: Box<Proposal>,
+    },
     Propose {
         contract: String,
         version: u32,
@@ -692,6 +699,25 @@ pub fn execute(request: Request) -> Result<serde_json::Value, String> {
             }
             let result = analyze(&capture, &reference, &mic, &options)?;
             serde_json::to_value(result).map_err(|e| e.to_string())
+        }
+        Request::Candidate {
+            contract,
+            version,
+            configuration_revision,
+            configuration,
+            proposal,
+        } => {
+            if contract != "C-PA-MEASUREMENT" || version != 1 {
+                return Err("request_identity".into());
+            }
+            let candidate =
+                proposal.candidate_configuration(&configuration, &configuration_revision)?;
+            Ok(
+                serde_json::json!({"contract":"C-PA-ALIGNMENT-CANDIDATE", "version":1,
+                "basis_capture":proposal.basis_capture,
+                "basis_configuration_revision":configuration_revision,
+                "configuration_json":serde_json::to_string(&candidate).map_err(|e|e.to_string())?}),
+            )
         }
         Request::Propose {
             contract,

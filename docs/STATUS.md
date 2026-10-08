@@ -10,7 +10,7 @@ base-graph preservation are explicit. Neither analysis nor proposal generation
 applies settings or rearms outputs. Live capture, GigPies/Desk integration and
 physical multi-position acoustic acceptance remain separate work.
 
-Software gates passed 103 normal Rust tests (12 measurement regressions),
+Software gates passed 104 normal Rust tests (13 measurement regressions),
 warning-denied Clippy, formatting, release build, five Python tests, documentation
 checks, terminal recovery and software-null controls. The release measurement CLI
 reproduced the checked-in invented result/proposal corpus exactly. Hardware,
