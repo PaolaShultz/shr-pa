@@ -159,9 +159,9 @@ eight-point positional RTA and the later nine-channel layout remain [future](FUT
 
 ## GigPies integration planning — 2026-10-04
 
-[Owning GigPies plan](GIGPIES_IMPLEMENTATION.md) records scoped tasks, contract dependencies,
-validation and launch instructions. This is planned work; existing implementation
-and hardware status above are unchanged.
+[Owning GigPies plan](GIGPIES_IMPLEMENTATION.md) owns module-only plans and implementation progress in the same task cards.
+Shared integration work is linked to its GigPies owner; dated evidence above
+retains its original scope.
 
 ## PA-01 read-only embedding extension — 2026-10-04
 
