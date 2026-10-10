@@ -20,8 +20,9 @@ SHR PA owns the PA module intended for later integration into GigPies. Develop a
 validate PA processing and measurement here while retaining standalone operation.
 Read docs/PHASE_ALIGNMENT.md when continuing measurement, P4/P5 setup or alignment
 work: it records the requested reference/mic phase measurement and delay/polarity
-alignment tasks, acceptance criteria and future GigPies boundary. Integration is
-planned; do not duplicate this implementation in GigPies or assume it already exists.
+alignment tasks, acceptance criteria and future GigPies boundary. Measurement integration is
+planned; configurable PA processing already has integrated software acceptance.
+Do not duplicate measurement in GigPies or assume that analyzer exists.
 
 ## Validation
 
@@ -47,3 +48,13 @@ Follow docs/PUBLICATION.md before committing or pushing. Keep user state, privat
 media and generated artifacts untracked. Enable the versioned hooks when absent;
 review new scripts in scripts/publication-policy.json and run the complete-index
 publication guard. One-off bench runners belong in ignored artifacts/.
+
+## GigPies task tracking
+
+Use `docs/GIGPIES_IMPLEMENTATION.md` for GigPies work owned here. Keep each task plan,
+implementation state, acceptance checklist, evidence and next action in the same
+card; update it with the change. Shared integration tasks have one card in
+GigPies, linked from contributor plans. STATUS, maps, handoffs and knowledge notes
+route to task owners or preserve dated evidence; never mirror current task state.
+Archive closed cards once; keep the active queue limited to open work. Reference
+projects do not become GigPies runtime modules merely because code is reused.
